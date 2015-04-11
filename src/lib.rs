@@ -71,7 +71,7 @@ impl Error for RetryError {
 /// This retries the API call up to 10 times, waiting 500 milliseconds after each unsuccesful
 /// attempt.
 pub fn retry<F, G, R>(
-    tries: usize,
+    tries: u32,
     wait: u32,
     mut value_fn: F,
     mut condition_fn: G
