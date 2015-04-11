@@ -2,6 +2,7 @@
 name = "retry"
 version = "0.1.0"
 authors = ["Jimmy Cuadra <jimmy@jimmycuadra.com>"]
+description = "Retry an operation until a condition is true."
 license = "MIT"
 readme = "README.md"
 keywords = ["utility", "utilities"]
