@@ -1,0 +1,9 @@
+[package]
+name = "retry"
+version = "0.1.0"
+authors = ["Jimmy Cuadra <jimmy@jimmycuadra.com>"]
+license = "MIT"
+readme = "README.md"
+keywords = ["utility", "utilities"]
+repository = "https://github.com/jimmycuadra/retry"
+homepage = "https://github.com/jimmycuadra/retry"
