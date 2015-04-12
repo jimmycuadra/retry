@@ -93,31 +93,21 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
             return Err(RetryError { message: "tries must be non-zero" });
         }
 
-        match self.tries {
-            Some(tries) => {
-                for _ in 0..tries {
-                    let value = (self.value_fn)();
+        let mut try = 0;
 
-                    if (self.condition_fn)(&value) {
-                        return Ok(value);
-                    }
-
-                    sleep_ms(self.wait);
-                }
-
-                Err(RetryError { message: "reached last try without condition match" })
-            },
-            None => {
-                loop {
-                    let value = (self.value_fn)();
-
-                    if (self.condition_fn)(&value) {
-                        return Ok(value);
-                    }
-
-                    sleep_ms(self.wait);
-                }
+        loop {
+            if self.tries.is_some() && self.tries.unwrap() == try {
+                return Err(RetryError { message: "reached last try without condition match" })
             }
+
+            let value = (self.value_fn)();
+
+            if (self.condition_fn)(&value) {
+                return Ok(value);
+            }
+
+            sleep_ms(self.wait);
+            try += 1;
         }
     }
 
