@@ -1,6 +1,5 @@
-//! Crate retry provides a function, `retry`, which runs an operation continuously until its
-//! return value satisfies a specific condition. The maximum number of times to try and the amount
-//! of time to wait between tries is configurable.
+//! Crate retry provides a set of functions for retrying an operation continuously until its
+//! return value satisfies a specific condition.
 
 use std::error::Error;
 use std::fmt::{Display,Formatter};
@@ -25,7 +24,7 @@ impl Error for RetryError {
     }
 }
 
-/// Invokes a function until a condition is satisfied.
+/// Invokes a function a certain number of times or until a condition is satisfied.
 ///
 /// `value_fn` is a closure that will be executed to produce a value. `condition_fn` is a closure
 /// that takes the value produced by `value_fn` and returns a boolean indicating whether or not
@@ -93,9 +92,30 @@ pub fn retry<F, G, R>(
     Err(RetryError { message: "reached last try without condition match" })
 }
 
+
+/// Invokes a function infinitely until a condition is satisfied.
+///
+/// Works the same as `retry`, but will try an infinite number of times. Since it will never return
+/// unsuccessfully, its return value is not wrapped in a `Result`.
+pub fn infinite_retry<F, G, R>(
+    wait: u32,
+    mut value_fn: F,
+    mut condition_fn: G
+) -> R where F: FnMut() -> R, G: FnMut(&R) -> bool {
+    loop {
+        let value = value_fn();
+
+        if condition_fn(&value) {
+            return value;
+        }
+
+        sleep_ms(wait);
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::retry;
+    use super::{infinite_retry, retry};
 
     #[test]
     fn succeeds_on_first_try() {
@@ -127,5 +147,14 @@ mod tests {
         let error = retry(1, 0, || collection.next().unwrap(), |value| *value == 2).err().unwrap();
 
         assert_eq!(error.message, "reached last try without condition match");
+    }
+
+    #[test]
+    fn succeeds_without_try_count() {
+        let mut collection = vec![1, 2, 3, 4, 5].into_iter();
+
+        let value = infinite_retry(0, || collection.next().unwrap(), |value| *value == 5);
+
+        assert_eq!(value, 5);
     }
 }
