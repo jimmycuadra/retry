@@ -106,7 +106,10 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
                 return Ok(value);
             }
 
-            sleep_ms(self.wait);
+            if self.wait != 0 {
+                sleep_ms(self.wait);
+            }
+
             try += 1;
         }
     }
