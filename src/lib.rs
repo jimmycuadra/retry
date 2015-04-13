@@ -126,6 +126,17 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
     }
 }
 
+/// Invokes a function a certain number of times or until a condition is satisfied with a fixed
+/// wait after each unsuccessful try.
+pub fn retry<F, G, R>(
+    tries: u32,
+    wait: u32,
+    mut value_fn: F,
+    mut condition_fn: G
+) -> Result<R, RetryError> where F: FnMut() -> R, G: FnMut(&R) -> bool {
+    Retry::new(&mut value_fn, &mut condition_fn).try(tries).wait(wait).execute()
+}
+
 /// An error indicating that a retry call failed.
 #[derive(Debug)]
 pub struct RetryError {
@@ -146,7 +157,7 @@ impl Error for RetryError {
 
 #[cfg(test)]
 mod tests {
-    use super::Retry;
+    use super::{Retry, retry};
 
     #[test]
     fn succeeds_without_try_count() {
@@ -206,6 +217,15 @@ mod tests {
             &mut || collection.next().unwrap(),
             &mut |value| *value == 2
         ).wait(1).execute().ok().unwrap();
+
+        assert_eq!(value, 2);
+    }
+
+    #[test]
+    fn retry_function() {
+        let mut collection = vec![1, 2].into_iter();
+
+        let value = retry(2, 0, || collection.next().unwrap(), |value| *value == 2).ok().unwrap();
 
         assert_eq!(value, 2);
     }
