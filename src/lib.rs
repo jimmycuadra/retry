@@ -3,33 +3,59 @@
 //!
 //! # Usage
 //!
-//! Create a retryable operation by passing two mutable closure references to `Retry::new`. The
-//! first argument, `value_fn`, will be executed to produce a value. The second argument,
-//! `condition_fn`, takes the value produced by `value_fn` and returns a boolean indicating whether
-//! or not some desired condition is true. Call `execute` on the returned `Retry` object to begin
-//! executing the operation, ultimately returning a `Result` containing the final value or an
-//! error.
+//! Retry an operation by calling the `retry` function, supplying a maximum number of times to try,
+//! the number of milliseconds to wait after each unsuccessful try, a closure that produces a value,
+//! and a closure that takes a reference to that value and returns a boolean indicating the success
+//! or failure of the operation. The function will return a `Result` containing either the value
+//! that satisfied the condition or an error indicating that a satisfactory value could not be
+//! produced.
 //!
-//! By default, the operation will be retried an infinite number of times with no delay between
-//! tries. To change either of these values, you may call the following two methods on the `Retry`
-//! object:
+//! You can also construct a retryable operation incrementally using the `Retry` type. `Retry::new`
+//! takes the same two closures as mutable references, and returns a `Retry` value. You can then
+//! call the `try` and `wait` methods on this value to add a maximum number of tries and a wait
+//! time, respectively. Finally, run the `execute` method to produce the `Result`.
 //!
-//! 1. `try`: The maximum number of tries to make.  If the operation reaches this number of tries
-//!    without passsing the condition, an error will be returned.
-//! 2. `wait` The number of milliseconds to wait after each unsuccessful try.
+//! If a maximum number of tries is not supplied, the operation will be executed infinitely or until
+//! success. If a wait time is not supplied, there will be no wait between attempts.
 //!
 //! # Failures
 //!
-//! Executing a `Retry` will fail when:
+//! Retrying will fail when:
 //!
 //! 1. The operation reaches the maximum number of tries without success.
-//! 2. A value of 0 is supplied to `try`. It must be at least 1.
+//! 2. A value of 0 is supplied for the maximum number of tries. It must be at least 1.
 //!
 //! # Examples
 //!
 //! Imagine an HTTP API with an endpoint that returns 204 No Content while a job is processing, and
 //! eventually 200 OK when the job has completed. Retrying until the job is finished would be
 //! written:
+//!
+//! ```
+//! # use retry::retry;
+//! # struct Client;
+//! # impl Client {
+//! #     fn query_job_status(&self) -> Response {
+//! #         Response {
+//! #             code: 200,
+//! #             body: "success",
+//! #         }
+//! #     }
+//! # }
+//! # struct Response {
+//! #     code: u16,
+//! #     body: &'static str,
+//! # }
+//! # let api_client = Client;
+//! match retry(10, 500, || api_client.query_job_status(), |response| response.code == 200) {
+//!     Ok(response) => println!("Job completed with result: {}", response.body),
+//!     Err(error) => println!("Job completion could not be verified: {}", error),
+//! }
+//! ```
+//!
+//!
+//! This retries the API call up to 10 times, waiting 500 milliseconds after each unsuccessful
+//! attempt. The same result can be achieved by building a `Retry` object incrementally:
 //!
 //! ```
 //! # use retry::Retry;
@@ -55,9 +81,6 @@
 //!     Err(error) => println!("Job completion could not be verified: {}", error),
 //! }
 //! ```
-//!
-//! This retries the API call up to 10 times, waiting 500 milliseconds after each unsuccessful
-//! attempt.
 
 use std::error::Error;
 use std::fmt::{Display,Formatter};
