@@ -1,6 +1,6 @@
 [package]
 name = "retry"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Jimmy Cuadra <jimmy@jimmycuadra.com>"]
 description = "Retry an operation until a condition is true."
 license = "MIT"
