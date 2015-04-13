@@ -205,7 +205,7 @@ mod tests {
         let value = Retry::new(
             &mut || collection.next().unwrap(),
             &mut |value| *value == 2
-        ).try(2).wait(1).execute().ok().unwrap();
+        ).wait(1).execute().ok().unwrap();
 
         assert_eq!(value, 2);
     }
