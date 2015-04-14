@@ -82,10 +82,15 @@
 //! }
 //! ```
 
+extern crate rand;
+
 use std::error::Error;
 use std::fmt::{Display,Formatter};
 use std::fmt::Error as FmtError;
 use std::thread::sleep_ms;
+
+use rand::distributions::{IndependentSample, Range};
+use rand::thread_rng;
 
 /// Builder object for a retryable operation.
 #[derive(Debug)]
@@ -93,7 +98,8 @@ pub struct Retry<'a, F: FnMut() -> R + 'a, G: FnMut(&R) -> bool + 'a, R> {
     condition_fn: &'a mut G,
     tries: Option<u32>,
     value_fn: &'a mut F,
-    wait: u32,
+    timeout: Option<u32>,
+    wait: Wait,
 }
 
 impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
@@ -106,7 +112,8 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
             condition_fn: condition_fn,
             tries: None,
             value_fn: value_fn,
-            wait: 0,
+            wait: Wait::None,
+            timeout: None,
         }
     }
 
@@ -129,12 +136,26 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
                 return Ok(value);
             }
 
-            if self.wait != 0 {
-                sleep_ms(self.wait);
+            match self.wait {
+                Wait::Exponential(_multiplier) => {},
+                Wait::Fixed(ms) => sleep_ms(ms),
+                Wait::None => {},
+                Wait::Range(min, max) => {
+                    let range = Range::new(min, max);
+                    let mut rng = thread_rng();
+                    sleep_ms(range.ind_sample(&mut rng));
+                },
             }
 
             try += 1;
         }
+    }
+
+    /// Set a maximum number of milliseconds retries will be attempted before failing.
+    pub fn timeout(mut self, max: u32) -> Retry<'a, F, G, R> {
+        self.timeout = Some(max);
+
+        self
     }
 
     /// Set a maximum number of tries to make before failing.
@@ -144,12 +165,42 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
         self
     }
 
-    /// Set the number of milliseconds to wait after an unsuccesful try before trying again.
+    /// Set the number of milliseconds to wait after each unsuccesful try before trying again.
+    ///
+    /// Mutually exclusive with `wait_between` and `wait_exponentially`.
     pub fn wait(mut self, wait: u32) -> Retry<'a, F, G, R> {
-        self.wait = wait;
+        self.wait = Wait::Fixed(wait);
 
         self
     }
+
+    /// Set a range for a randomly chosen number of milliseconds to wait after each unsuccesful try
+    /// before trying again. A new random value from the range is chosen for each try.
+    ///
+    /// Mutually exclusive with `wait` and `wait_exponentially`.
+    pub fn wait_between(mut self, min: u32, max: u32) -> Retry<'a, F, G, R> {
+        self.wait = Wait::Range(min, max);
+
+        self
+    }
+
+    /// Set a multiplier in milliseconds to use in exponential backoff after each unsuccesful try
+    /// before trying again.
+    ///
+    /// Mutually exclusive with `wait` and `wait_between`.
+    pub fn wait_exponentially(mut self, multiplier: u32) -> Retry<'a, F, G, R> {
+        self.wait = Wait::Exponential(multiplier);
+
+        self
+    }
+}
+
+#[derive(Debug)]
+enum Wait {
+    Exponential(u32),
+    Fixed(u32),
+    None,
+    Range(u32, u32),
 }
 
 /// Invokes a function a certain number of times or until a condition is satisfied with a fixed

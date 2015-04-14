@@ -9,3 +9,7 @@ keywords = ["utility", "utilities"]
 repository = "https://github.com/jimmycuadra/retry"
 homepage = "https://github.com/jimmycuadra/retry"
 documentation = "https://jimmycuadra.github.io/retry/retry/"
+
+[dependencies]
+
+rand = ">= 0.3.7"
