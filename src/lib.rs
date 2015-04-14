@@ -103,7 +103,7 @@ pub struct Retry<'a, F: FnMut() -> R + 'a, G: FnMut(&R) -> bool + 'a, R> {
 }
 
 impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
-    /// Build a new `Retry` object.
+    /// Builds a new `Retry` object.
     pub fn new(
         value_fn: &'a mut F,
         condition_fn: &'a mut G
@@ -117,7 +117,7 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
         }
     }
 
-    /// Begin executing the retryable operation.
+    /// Begins executing the retryable operation.
     pub fn execute(self) -> Result<R, RetryError> {
         if self.tries.is_some() && self.tries.unwrap() == 0 {
             return Err(RetryError { message: "tries must be non-zero" });
@@ -151,21 +151,21 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
         }
     }
 
-    /// Set a maximum number of milliseconds retries will be attempted before failing.
+    /// Sets the maximum number of milliseconds retries will be made before failing.
     pub fn timeout(mut self, max: u32) -> Retry<'a, F, G, R> {
         self.timeout = Some(max);
 
         self
     }
 
-    /// Set a maximum number of tries to make before failing.
+    /// Sets the maximum number of tries to make before failing.
     pub fn try(mut self, tries: u32) -> Retry<'a, F, G, R> {
         self.tries = Some(tries);
 
         self
     }
 
-    /// Set the number of milliseconds to wait after each unsuccesful try before trying again.
+    /// Sets the number of milliseconds to wait between tries.
     ///
     /// Mutually exclusive with `wait_between` and `wait_exponentially`.
     pub fn wait(mut self, wait: u32) -> Retry<'a, F, G, R> {
@@ -174,8 +174,8 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
         self
     }
 
-    /// Set a range for a randomly chosen number of milliseconds to wait after each unsuccesful try
-    /// before trying again. A new random value from the range is chosen for each try.
+    /// Sets a range for a randomly chosen number of milliseconds to wait between tries. A new
+    /// random value from the range is chosen for each try.
     ///
     /// Mutually exclusive with `wait` and `wait_exponentially`.
     pub fn wait_between(mut self, min: u32, max: u32) -> Retry<'a, F, G, R> {
@@ -184,8 +184,7 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
         self
     }
 
-    /// Set a multiplier in milliseconds to use in exponential backoff after each unsuccesful try
-    /// before trying again.
+    /// Sets a multiplier in milliseconds to use in exponential backoff between tries.
     ///
     /// Mutually exclusive with `wait` and `wait_between`.
     pub fn wait_exponentially(mut self, multiplier: u32) -> Retry<'a, F, G, R> {
