@@ -137,8 +137,8 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
             }
 
             match self.wait {
-                Wait::Exponential(_multiplier) => {
-                    let multiplier = (_multiplier + try) as f64;
+                Wait::Exponential(multiplier) => {
+                    let multiplier = multiplier + (try as f64);
                     sleep_ms(multiplier.exp() as u32);
                 },
                 Wait::Fixed(ms) => sleep_ms(ms),
@@ -190,7 +190,7 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
     /// Sets a multiplier in milliseconds to use in exponential backoff between tries.
     ///
     /// Mutually exclusive with `wait` and `wait_between`.
-    pub fn wait_exponentially(mut self, multiplier: u32) -> Retry<'a, F, G, R> {
+    pub fn wait_exponentially(mut self, multiplier: f64) -> Retry<'a, F, G, R> {
         self.wait = Wait::Exponential(multiplier);
 
         self
@@ -199,7 +199,7 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
 
 #[derive(Debug)]
 enum Wait {
-    Exponential(u32),
+    Exponential(f64),
     Fixed(u32),
     None,
     Range(u32, u32),
@@ -220,7 +220,7 @@ pub fn retry<F, G, R>(
 /// with an exponential backoff after each unsuccessful try.
 pub fn retry_exponentially<F, G, R>(
     tries: u32,
-    wait: u32,
+    wait: f64,
     mut value_fn: F,
     mut condition_fn: G
 ) -> Result<R, RetryError> where F: FnMut() -> R, G: FnMut(&R) -> bool {
@@ -318,7 +318,7 @@ mod tests {
         let value = Retry::new(
             &mut || collection.next().unwrap(),
             &mut |value| *value == 2
-        ).wait_exponentially(1).execute().ok().unwrap();
+        ).wait_exponentially(1_f64).execute().ok().unwrap();
 
         assert_eq!(value, 2);
     }
@@ -336,7 +336,7 @@ mod tests {
     fn retry_exponentially_function() {
         let mut collection = vec![1, 2].into_iter();
 
-        let value = retry_exponentially(2, 0, || collection.next().unwrap(), |value| *value == 2).ok().unwrap();
+        let value = retry_exponentially(2, 0_f64, || collection.next().unwrap(), |value| *value == 2).ok().unwrap();
 
         assert_eq!(value, 2);
     }
