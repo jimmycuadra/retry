@@ -1,15 +1,14 @@
 [package]
-name = "retry"
-version = "0.3.0"
 authors = ["Jimmy Cuadra <jimmy@jimmycuadra.com>"]
 description = "Retry an operation until a condition is true."
-license = "MIT"
-readme = "README.md"
-keywords = ["utility", "utilities"]
-repository = "https://github.com/jimmycuadra/retry"
-homepage = "https://github.com/jimmycuadra/retry"
 documentation = "https://jimmycuadra.github.io/retry/retry/"
+homepage = "https://github.com/jimmycuadra/retry"
+keywords = ["utility", "utilities"]
+license = "MIT"
+name = "retry"
+readme = "README.md"
+repository = "https://github.com/jimmycuadra/retry"
+version = "0.4.0"
 
 [dependencies]
-
-rand = ">= 0.3.7"
+rand = "0.3.14"
