@@ -216,6 +216,17 @@ pub fn retry<F, G, R>(
     Retry::new(&mut value_fn, &mut condition_fn).try(tries).wait(wait).execute()
 }
 
+/// Invokes a function exponential backoff between tries is satisfied with a fixed
+/// wait after each unsuccessful try.
+pub fn retry_exponentially<F, G, R>(
+    tries: u32,
+    wait: u32,
+    mut value_fn: F,
+    mut condition_fn: G
+) -> Result<R, RetryError> where F: FnMut() -> R, G: FnMut(&R) -> bool {
+    Retry::new(&mut value_fn, &mut condition_fn).try(tries).wait_exponentially(wait).execute()
+}
+
 /// An error indicating that a retry call failed.
 #[derive(Debug)]
 pub struct RetryError {
@@ -236,7 +247,7 @@ impl Error for RetryError {
 
 #[cfg(test)]
 mod tests {
-    use super::{Retry, retry};
+    use super::{Retry, retry, retry_exponentially};
 
     #[test]
     fn succeeds_without_try_count() {
@@ -317,6 +328,15 @@ mod tests {
         let mut collection = vec![1, 2].into_iter();
 
         let value = retry(2, 0, || collection.next().unwrap(), |value| *value == 2).ok().unwrap();
+
+        assert_eq!(value, 2);
+    }
+
+    #[test]
+    fn retry_exponentially_function() {
+        let mut collection = vec![1, 2].into_iter();
+
+        let value = retry_exponentially(2, 0, || collection.next().unwrap(), |value| *value == 2).ok().unwrap();
 
         assert_eq!(value, 2);
     }
