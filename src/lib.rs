@@ -137,7 +137,10 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
             }
 
             match self.wait {
-                Wait::Exponential(_multiplier) => {},
+                Wait::Exponential(multiplier) => {
+                    let multiplier = multiplier + (try as f64);
+                    sleep_ms(multiplier.exp() as u32);
+                },
                 Wait::Fixed(ms) => sleep_ms(ms),
                 Wait::None => {},
                 Wait::Range(min, max) => {
@@ -187,7 +190,7 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
     /// Sets a multiplier in milliseconds to use in exponential backoff between tries.
     ///
     /// Mutually exclusive with `wait` and `wait_between`.
-    pub fn wait_exponentially(mut self, multiplier: u32) -> Retry<'a, F, G, R> {
+    pub fn wait_exponentially(mut self, multiplier: f64) -> Retry<'a, F, G, R> {
         self.wait = Wait::Exponential(multiplier);
 
         self
@@ -196,7 +199,7 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
 
 #[derive(Debug)]
 enum Wait {
-    Exponential(u32),
+    Exponential(f64),
     Fixed(u32),
     None,
     Range(u32, u32),
@@ -211,6 +214,17 @@ pub fn retry<F, G, R>(
     mut condition_fn: G
 ) -> Result<R, RetryError> where F: FnMut() -> R, G: FnMut(&R) -> bool {
     Retry::new(&mut value_fn, &mut condition_fn).try(tries).wait(wait).execute()
+}
+
+/// Invokes a function a certain number of times or until a condition is satisfied
+/// with an exponential backoff after each unsuccessful try.
+pub fn retry_exponentially<F, G, R>(
+    tries: u32,
+    wait: f64,
+    mut value_fn: F,
+    mut condition_fn: G
+) -> Result<R, RetryError> where F: FnMut() -> R, G: FnMut(&R) -> bool {
+    Retry::new(&mut value_fn, &mut condition_fn).try(tries).wait_exponentially(wait).execute()
 }
 
 /// An error indicating that a retry call failed.
@@ -233,7 +247,7 @@ impl Error for RetryError {
 
 #[cfg(test)]
 mod tests {
-    use super::{Retry, retry};
+    use super::{Retry, retry, retry_exponentially};
 
     #[test]
     fn succeeds_without_try_count() {
@@ -298,10 +312,31 @@ mod tests {
     }
 
     #[test]
+    fn sets_wait_exponentially() {
+        let mut collection = vec![1, 2].into_iter();
+
+        let value = Retry::new(
+            &mut || collection.next().unwrap(),
+            &mut |value| *value == 2
+        ).wait_exponentially(1_f64).execute().ok().unwrap();
+
+        assert_eq!(value, 2);
+    }
+
+    #[test]
     fn retry_function() {
         let mut collection = vec![1, 2].into_iter();
 
         let value = retry(2, 0, || collection.next().unwrap(), |value| *value == 2).ok().unwrap();
+
+        assert_eq!(value, 2);
+    }
+
+    #[test]
+    fn retry_exponentially_function() {
+        let mut collection = vec![1, 2].into_iter();
+
+        let value = retry_exponentially(2, 0_f64, || collection.next().unwrap(), |value| *value == 2).ok().unwrap();
 
         assert_eq!(value, 2);
     }
