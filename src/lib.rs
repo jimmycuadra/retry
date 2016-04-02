@@ -85,9 +85,10 @@
 extern crate rand;
 
 use std::error::Error;
-use std::fmt::{Display,Formatter};
 use std::fmt::Error as FmtError;
-use std::thread::sleep_ms;
+use std::fmt::{Display,Formatter};
+use std::thread::sleep;
+use std::time::Duration;
 
 use rand::distributions::{IndependentSample, Range};
 use rand::thread_rng;
@@ -96,9 +97,9 @@ use rand::thread_rng;
 #[derive(Debug)]
 pub struct Retry<'a, F: FnMut() -> R + 'a, G: FnMut(&R) -> bool + 'a, R> {
     condition_fn: &'a mut G,
-    tries: Option<u32>,
+    tries: Option<u64>,
     value_fn: &'a mut F,
-    timeout: Option<u32>,
+    timeout: Option<u64>,
     wait: Wait,
 }
 
@@ -139,14 +140,14 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
             match self.wait {
                 Wait::Exponential(multiplier) => {
                     let multiplier = multiplier + (try as f64);
-                    sleep_ms(multiplier.exp() as u32);
+                    sleep(Duration::from_millis(multiplier.exp() as u64));
                 },
-                Wait::Fixed(ms) => sleep_ms(ms),
+                Wait::Fixed(ms) => sleep(Duration::from_millis(ms)),
                 Wait::None => {},
                 Wait::Range(min, max) => {
                     let range = Range::new(min, max);
                     let mut rng = thread_rng();
-                    sleep_ms(range.ind_sample(&mut rng));
+                    sleep(Duration::from_millis(range.ind_sample(&mut rng)));
                 },
             }
 
@@ -155,14 +156,14 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
     }
 
     /// Sets the maximum number of milliseconds retries will be made before failing.
-    pub fn timeout(mut self, max: u32) -> Retry<'a, F, G, R> {
+    pub fn timeout(mut self, max: u64) -> Retry<'a, F, G, R> {
         self.timeout = Some(max);
 
         self
     }
 
     /// Sets the maximum number of tries to make before failing.
-    pub fn try(mut self, tries: u32) -> Retry<'a, F, G, R> {
+    pub fn try(mut self, tries: u64) -> Retry<'a, F, G, R> {
         self.tries = Some(tries);
 
         self
@@ -171,7 +172,7 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
     /// Sets the number of milliseconds to wait between tries.
     ///
     /// Mutually exclusive with `wait_between` and `wait_exponentially`.
-    pub fn wait(mut self, wait: u32) -> Retry<'a, F, G, R> {
+    pub fn wait(mut self, wait: u64) -> Retry<'a, F, G, R> {
         self.wait = Wait::Fixed(wait);
 
         self
@@ -181,7 +182,7 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
     /// random value from the range is chosen for each try.
     ///
     /// Mutually exclusive with `wait` and `wait_exponentially`.
-    pub fn wait_between(mut self, min: u32, max: u32) -> Retry<'a, F, G, R> {
+    pub fn wait_between(mut self, min: u64, max: u64) -> Retry<'a, F, G, R> {
         self.wait = Wait::Range(min, max);
 
         self
@@ -200,16 +201,16 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
 #[derive(Debug)]
 enum Wait {
     Exponential(f64),
-    Fixed(u32),
+    Fixed(u64),
     None,
-    Range(u32, u32),
+    Range(u64, u64),
 }
 
 /// Invokes a function a certain number of times or until a condition is satisfied with a fixed
 /// wait after each unsuccessful try.
 pub fn retry<F, G, R>(
-    tries: u32,
-    wait: u32,
+    tries: u64,
+    wait: u64,
     mut value_fn: F,
     mut condition_fn: G
 ) -> Result<R, RetryError> where F: FnMut() -> R, G: FnMut(&R) -> bool {
@@ -219,7 +220,7 @@ pub fn retry<F, G, R>(
 /// Invokes a function a certain number of times or until a condition is satisfied
 /// with an exponential backoff after each unsuccessful try.
 pub fn retry_exponentially<F, G, R>(
-    tries: u32,
+    tries: u64,
     wait: f64,
     mut value_fn: F,
     mut condition_fn: G
