@@ -137,7 +137,10 @@ impl<'a, F: FnMut() -> R, G: FnMut(&R) -> bool, R> Retry<'a, F, G, R> {
             }
 
             match self.wait {
-                Wait::Exponential(_multiplier) => {},
+                Wait::Exponential(_multiplier) => {
+                    let multiplier = (_multiplier + try) as f64;
+                    sleep_ms(multiplier.exp() as u32);
+                },
                 Wait::Fixed(ms) => sleep_ms(ms),
                 Wait::None => {},
                 Wait::Range(min, max) => {
@@ -293,6 +296,18 @@ mod tests {
             &mut || collection.next().unwrap(),
             &mut |value| *value == 2
         ).wait(1).execute().ok().unwrap();
+
+        assert_eq!(value, 2);
+    }
+
+    #[test]
+    fn sets_wait_exponentially() {
+        let mut collection = vec![1, 2].into_iter();
+
+        let value = Retry::new(
+            &mut || collection.next().unwrap(),
+            &mut |value| *value == 2
+        ).wait_exponentially(1).execute().ok().unwrap();
 
         assert_eq!(value, 2);
     }
