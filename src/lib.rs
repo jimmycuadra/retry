@@ -216,8 +216,8 @@ pub fn retry<F, G, R>(
     Retry::new(&mut value_fn, &mut condition_fn).try(tries).wait(wait).execute()
 }
 
-/// Invokes a function exponential backoff between tries is satisfied with a fixed
-/// wait after each unsuccessful try.
+/// Invokes a function a certain number of times or until a condition is satisfied
+/// with an exponential backoff after each unsuccessful try.
 pub fn retry_exponentially<F, G, R>(
     tries: u32,
     wait: u32,
