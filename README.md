@@ -1,10 +1,12 @@
 # retry
 
-A Rust library to retry an operation until a condition is true.
+Crate **retry** provides utilities for retrying operations that can fail.
 
-Documentation: https://jimmycuadra.github.io/retry/retry/
+## Documentation
 
-# License
+retry has [comprehensive documentation](https://docs.rs/retry) available on docs.rs.
 
-[MIT](http://opensource.org/licenses/MIT)
+## Legal
 
+retry is released under the MIT license.
+See `LICENSE`.
