@@ -60,8 +60,9 @@ pub mod delay;
 
 /// Retry the given operation synchronously until it succeeds, or until the given `Duration`
 /// iterator ends.
-pub fn retry<I, O, R, E>(mut iterator: I, mut operation: O) -> Result<R, Error<E>>
-where I: Iterator<Item=Duration>, O: FnMut() -> Result<R, E> {
+pub fn retry<I, O, R, E>(iterable: I, mut operation: O) -> Result<R, Error<E>>
+where I: IntoIterator<Item=Duration>, O: FnMut() -> Result<R, E> {
+    let mut iterator = iterable.into_iter();
     let mut try = 1;
     let mut total_delay = Duration::default();
 
