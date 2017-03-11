@@ -1,9 +1,10 @@
 //! Different types of delay for retryable operations.
 
+use std::fmt::{Debug, Formatter, Error as FmtError};
 use std::time::Duration;
 
 use rand::distributions::{IndependentSample, Range as RandRange};
-use rand::thread_rng;
+use rand::{ThreadRng, thread_rng};
 
 /// Each retry increases the delay since the last exponentially.
 #[derive(Debug)]
@@ -70,18 +71,17 @@ impl Iterator for NoDelay {
 }
 
 /// Each retry uses a duration randomly chosen from a range.
-#[derive(Debug)]
 pub struct Range {
-    minimum: u64,
-    maximum: u64,
+    range: RandRange<u64>,
+    rng: ThreadRng,
 }
 
 impl Range {
     /// Create a new `Range` between the given millisecond durations.
     pub fn from_millis(minimum: u64, maximum: u64) -> Self {
         Range {
-            minimum: minimum,
-            maximum: maximum,
+            range: RandRange::new(minimum, maximum),
+            rng: thread_rng(),
         }
     }
 }
@@ -90,10 +90,12 @@ impl Iterator for Range {
     type Item = Duration;
 
     fn next(&mut self) -> Option<Duration> {
-        let range = RandRange::new(self.minimum, self.maximum);
+        Some(Duration::from_millis(self.range.ind_sample(&mut self.rng)))
+    }
+}
 
-        let mut rng = thread_rng();
-
-        Some(Duration::from_millis(range.ind_sample(&mut rng)))
+impl Debug for Range {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "Range {{ range: RandRange<u64>, rng: ThreadRng }}")
     }
 }
