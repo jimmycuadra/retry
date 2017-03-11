@@ -5,8 +5,6 @@ use std::time::Duration;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use rand::thread_rng;
 
-use super::DetermineDelay;
-
 /// Each retry increases the delay since the last exponentially.
 #[derive(Debug)]
 pub struct Exponential {
@@ -24,13 +22,15 @@ impl Exponential {
     }
 }
 
-impl DetermineDelay for Exponential {
-    fn next(&mut self) -> Duration {
+impl Iterator for Exponential {
+    type Item = Duration;
+
+    fn next(&mut self) -> Option<Duration> {
         let duration = Duration::from_millis(self.current);
 
         self.current = self.current * self.base;
 
-        duration
+        Some(duration)
     }
 }
 
@@ -49,9 +49,11 @@ impl Fixed {
     }
 }
 
-impl DetermineDelay for Fixed {
-    fn next(&mut self) -> Duration {
-        self.duration
+impl Iterator for Fixed {
+    type Item = Duration;
+
+    fn next(&mut self) -> Option<Duration> {
+        Some(self.duration)
     }
 }
 
@@ -59,9 +61,11 @@ impl DetermineDelay for Fixed {
 #[derive(Debug)]
 pub struct NoDelay;
 
-impl DetermineDelay for NoDelay {
-    fn next(&mut self) -> Duration {
-        Duration::default()
+impl Iterator for NoDelay {
+    type Item = Duration;
+
+    fn next(&mut self) -> Option<Duration> {
+        Some(Duration::default())
     }
 }
 
@@ -82,12 +86,14 @@ impl Range {
     }
 }
 
-impl DetermineDelay for Range {
-    fn next(&mut self) -> Duration {
+impl Iterator for Range {
+    type Item = Duration;
+
+    fn next(&mut self) -> Option<Duration> {
         let range = RandRange::new(self.minimum, self.maximum);
 
         let mut rng = thread_rng();
 
-        Duration::from_millis(range.ind_sample(&mut rng))
+        Some(Duration::from_millis(range.ind_sample(&mut rng)))
     }
 }
