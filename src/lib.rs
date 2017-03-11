@@ -73,7 +73,7 @@ where I: IntoIterator<Item=Duration>, O: FnMut() -> Result<R, E> {
                 if let Some(delay) = iterator.next() {
                     sleep(delay);
                     try += 1;
-                    total_delay = delay;
+                    total_delay += delay;
                 } else {
                     return Err(Error::Operation {
                         error: error,
