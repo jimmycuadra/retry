@@ -44,6 +44,25 @@
 //!
 //! assert!(result.is_err());
 //! ```
+//!
+//! To apply random jitter to any delay strategy, the `jitter` function can be used in combination
+//! with the `Iterator` API:
+//!
+//! ```
+//! # use retry::retry;
+//! # use retry::delay::{Exponential, jitter};
+//! let mut collection = vec![1, 2, 3].into_iter();
+//!
+//! let result = retry(Exponential::from_millis(10).map(jitter).take(3), || {
+//!     match collection.next() {
+//!         Some(n) if n == 3 => Ok("n is 3!"),
+//!         Some(_) => Err("n must be 3!"),
+//!         None => Err("n was never 3!"),
+//!     }
+//! });
+//!
+//! assert!(result.is_ok());
+//! ```
 
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
