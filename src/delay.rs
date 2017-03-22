@@ -35,6 +35,52 @@ impl Iterator for Exponential {
     }
 }
 
+/// Each retry uses a delay which is the sum of the two previous delays.
+///
+/// Depending on the problem at hand, a fibonacci delay strategy might
+/// perform better and lead to better throughput than the `Exponential`
+/// strategy.
+///
+/// See ["A Performance Comparison of Different Backoff Algorithms under Different Rebroadcast Probabilities for MANETs."](http://www.comp.leeds.ac.uk/ukpew09/papers/12.pdf)
+/// for more details.
+#[derive(Debug)]
+pub struct Fibonacci {
+    curr: u64,
+    next: u64
+}
+
+impl Fibonacci {
+    /// Create a new `Fibonacci` using the given duration in milliseconds.
+    pub fn from_millis(millis: u64) -> Fibonacci {
+        Fibonacci{curr: millis, next: millis}
+    }
+}
+
+impl Iterator for Fibonacci {
+    type Item = Duration;
+
+    fn next(&mut self) -> Option<Duration> {
+        let next_next = self.curr + self.next;
+        let duration = Duration::from_millis(self.curr);
+
+        self.curr = self.next;
+        self.next = next_next;
+
+        Some(duration)
+    }
+}
+
+#[test]
+fn fibonacci() {
+    let mut iter = Fibonacci::from_millis(10);
+    assert_eq!(iter.next(), Some(Duration::from_millis(10)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(10)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(20)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(30)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(50)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(80)));
+}
+
 /// Each retry uses a fixed delay.
 #[derive(Debug)]
 pub struct Fixed {
