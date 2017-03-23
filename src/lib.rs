@@ -68,6 +68,12 @@
 #![deny(missing_docs)]
 
 extern crate rand;
+#[cfg(feature = "async")]
+extern crate futures;
+#[cfg(feature = "async_tokio_timer")]
+extern crate tokio_timer;
+#[cfg(feature = "async_tokio_core")]
+extern crate tokio_core;
 
 use std::error::Error as StdError;
 use std::fmt::Error as FmtError;
@@ -76,6 +82,8 @@ use std::thread::sleep;
 use std::time::Duration;
 
 pub mod delay;
+#[cfg(feature = "async")]
+pub mod async;
 
 /// Retry the given operation synchronously until it succeeds, or until the given `Duration`
 /// iterator ends.
@@ -106,7 +114,7 @@ where I: IntoIterator<Item=Duration>, O: FnMut() -> Result<R, E> {
 }
 
 /// An error with a retryable operation.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error<E> {
     /// The operation's last error, plus the number of times the operation was tried and the
     /// duration spent waiting between tries.
@@ -119,7 +127,9 @@ pub enum Error<E> {
         total_delay: Duration,
         /// The total number of times the operation was tried.
         tries: u64,
-    }
+    },
+    /// Something went wrong in the internal logic.
+    Internal(String)
 }
 
 impl<E> Display for Error<E> where E: StdError {
@@ -132,12 +142,14 @@ impl<E> StdError for Error<E> where E: StdError {
     fn description(&self) -> &str {
         match *self {
             Error::Operation { ref error, .. } => error.description(),
+            Error::Internal(ref description) => description,
         }
     }
 
     fn cause(&self) -> Option<&StdError> {
         match *self {
             Error::Operation { ref error, .. } => Some(error),
+            Error::Internal(_) => None
         }
     }
 }
@@ -183,18 +195,19 @@ mod tests {
     fn fails_after_last_try() {
         let mut collection = vec![1].into_iter();
 
-        let Error::Operation { error, total_delay, tries } =
-            retry(NoDelay.take(1), || {
-                match collection.next() {
-                    Some(n) if n == 2 => Ok(n),
-                    Some(_) => Err("not 2"),
-                    None => Err("not 2"),
-                }
-        }).err().unwrap();
+        let res = retry(NoDelay.take(1), || {
+            match collection.next() {
+                Some(n) if n == 2 => Ok(n),
+                Some(_) => Err("not 2"),
+                None => Err("not 2"),
+            }
+        });
 
-        assert_eq!(error, "not 2");
-        assert_eq!(total_delay, Duration::default());
-        assert_eq!(tries, 2);
+        assert_eq!(res, Err(Error::Operation{
+            error: "not 2",
+            tries: 2,
+            total_delay: Duration::from_millis(0)
+        }));
     }
 
     #[test]
