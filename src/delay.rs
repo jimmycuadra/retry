@@ -2,6 +2,7 @@
 
 use std::fmt::{Debug, Formatter, Error as FmtError};
 use std::time::Duration;
+use std::u64::{MAX as U64_MAX};
 
 use rand::distributions::{IndependentSample, Range as RandRange};
 use rand::{Closed01, random, ThreadRng, thread_rng};
@@ -29,7 +30,11 @@ impl Iterator for Exponential {
     fn next(&mut self) -> Option<Duration> {
         let duration = Duration::from_millis(self.current);
 
-        self.current = self.current * self.base;
+        if let Some(next) = self.current.checked_mul(self.base) {
+            self.current = next;
+        } else {
+            self.current = U64_MAX;
+        }
 
         Some(duration)
     }
@@ -60,11 +65,15 @@ impl Iterator for Fibonacci {
     type Item = Duration;
 
     fn next(&mut self) -> Option<Duration> {
-        let next_next = self.curr + self.next;
         let duration = Duration::from_millis(self.curr);
 
-        self.curr = self.next;
-        self.next = next_next;
+        if let Some(next_next) = self.curr.checked_add(self.next) {
+            self.curr = self.next;
+            self.next = next_next;
+        } else {
+            self.curr = self.next;
+            self.next = U64_MAX;
+        }
 
         Some(duration)
     }
@@ -79,6 +88,13 @@ fn fibonacci() {
     assert_eq!(iter.next(), Some(Duration::from_millis(30)));
     assert_eq!(iter.next(), Some(Duration::from_millis(50)));
     assert_eq!(iter.next(), Some(Duration::from_millis(80)));
+}
+
+#[test]
+fn fibonacci_saturated() {
+    let mut iter = Fibonacci::from_millis(U64_MAX);
+    assert_eq!(iter.next(), Some(Duration::from_millis(U64_MAX)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(U64_MAX)));
 }
 
 /// Each retry uses a fixed delay.
