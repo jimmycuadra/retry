@@ -4,10 +4,10 @@ use std::time::Duration;
 use std::u64::{MAX as U64_MAX};
 
 use rand::{
-    random,
-    thread_rng,
     distributions::{Distribution, Uniform},
+    random,
     rngs::ThreadRng,
+    thread_rng,
 };
 
 /// Each retry increases the delay since the last exponentially.
@@ -54,13 +54,16 @@ impl Iterator for Exponential {
 #[derive(Debug)]
 pub struct Fibonacci {
     curr: u64,
-    next: u64
+    next: u64,
 }
 
 impl Fibonacci {
     /// Create a new `Fibonacci` using the given duration in milliseconds.
     pub fn from_millis(millis: u64) -> Fibonacci {
-        Fibonacci{curr: millis, next: millis}
+        Fibonacci {
+            curr: millis,
+            next: millis,
+        }
     }
 }
 
@@ -156,7 +159,9 @@ impl Iterator for Range {
     type Item = Duration;
 
     fn next(&mut self) -> Option<Duration> {
-        Some(Duration::from_millis(self.distribution.sample(&mut self.rng)))
+        Some(Duration::from_millis(
+            self.distribution.sample(&mut self.rng),
+        ))
     }
 }
 

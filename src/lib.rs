@@ -78,7 +78,10 @@ pub mod delay;
 /// Retry the given operation synchronously until it succeeds, or until the given `Duration`
 /// iterator ends.
 pub fn retry<I, O, R, E>(iterable: I, mut operation: O) -> Result<R, Error<E>>
-where I: IntoIterator<Item=Duration>, O: FnMut() -> Result<R, E> {
+where
+    I: IntoIterator<Item = Duration>,
+    O: FnMut() -> Result<R, E>,
+{
     let mut iterator = iterable.into_iter();
     let mut current_try = 1;
     let mut total_delay = Duration::default();
@@ -119,16 +122,22 @@ pub enum Error<E> {
         tries: u64,
     },
     /// Something went wrong in the internal logic.
-    Internal(String)
+    Internal(String),
 }
 
-impl<E> Display for Error<E> where E: StdError {
+impl<E> Display for Error<E>
+where
+    E: StdError,
+{
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FmtError> {
         write!(formatter, "{}", self.description())
     }
 }
 
-impl<E> StdError for Error<E> where E: StdError {
+impl<E> StdError for Error<E>
+where
+    E: StdError,
+{
     fn description(&self) -> &str {
         match *self {
             Error::Operation { ref error, .. } => error.description(),
@@ -139,7 +148,7 @@ impl<E> StdError for Error<E> where E: StdError {
     fn cause(&self) -> Option<&StdError> {
         match *self {
             Error::Operation { ref error, .. } => Some(error),
-            Error::Internal(_) => None
+            Error::Internal(_) => None,
         }
     }
 }
@@ -148,20 +157,19 @@ impl<E> StdError for Error<E> where E: StdError {
 mod tests {
     use std::time::Duration;
 
-    use super::{Error, retry};
     use super::delay::{Exponential, Fixed, NoDelay, Range};
+    use super::{retry, Error};
 
     #[test]
     fn succeeds_with_infinite_retries() {
         let mut collection = vec![1, 2, 3, 4, 5].into_iter();
 
-        let value = retry(NoDelay, || {
-            match collection.next() {
-                Some(n) if n == 5 => Ok(n),
-                Some(_) => Err("not 5"),
-                None => Err("not 5"),
-            }
-        }).unwrap();
+        let value = retry(NoDelay, || match collection.next() {
+            Some(n) if n == 5 => Ok(n),
+            Some(_) => Err("not 5"),
+            None => Err("not 5"),
+        })
+        .unwrap();
 
         assert_eq!(value, 5);
     }
@@ -170,13 +178,12 @@ mod tests {
     fn succeeds_with_maximum_retries() {
         let mut collection = vec![1, 2].into_iter();
 
-        let value = retry(NoDelay.take(1), || {
-            match collection.next() {
-                Some(n) if n == 2 => Ok(n),
-                Some(_) => Err("not 2"),
-                None => Err("not 2"),
-            }
-        }).unwrap();
+        let value = retry(NoDelay.take(1), || match collection.next() {
+            Some(n) if n == 2 => Ok(n),
+            Some(_) => Err("not 2"),
+            None => Err("not 2"),
+        })
+        .unwrap();
 
         assert_eq!(value, 2);
     }
@@ -185,32 +192,32 @@ mod tests {
     fn fails_after_last_try() {
         let mut collection = vec![1].into_iter();
 
-        let res = retry(NoDelay.take(1), || {
-            match collection.next() {
-                Some(n) if n == 2 => Ok(n),
-                Some(_) => Err("not 2"),
-                None => Err("not 2"),
-            }
+        let res = retry(NoDelay.take(1), || match collection.next() {
+            Some(n) if n == 2 => Ok(n),
+            Some(_) => Err("not 2"),
+            None => Err("not 2"),
         });
 
-        assert_eq!(res, Err(Error::Operation{
-            error: "not 2",
-            tries: 2,
-            total_delay: Duration::from_millis(0)
-        }));
+        assert_eq!(
+            res,
+            Err(Error::Operation {
+                error: "not 2",
+                tries: 2,
+                total_delay: Duration::from_millis(0)
+            })
+        );
     }
 
     #[test]
     fn succeeds_with_fixed_delay() {
         let mut collection = vec![1, 2].into_iter();
 
-        let value = retry(Fixed::from_millis(1), || {
-            match collection.next() {
-                Some(n) if n == 2 => Ok(n),
-                Some(_) => Err("not 2"),
-                None => Err("not 2"),
-            }
-        }).unwrap();
+        let value = retry(Fixed::from_millis(1), || match collection.next() {
+            Some(n) if n == 2 => Ok(n),
+            Some(_) => Err("not 2"),
+            None => Err("not 2"),
+        })
+        .unwrap();
 
         assert_eq!(value, 2);
     }
@@ -219,13 +226,12 @@ mod tests {
     fn succeeds_with_exponential_delay() {
         let mut collection = vec![1, 2].into_iter();
 
-        let value = retry(Exponential::from_millis(1), || {
-            match collection.next() {
-                Some(n) if n == 2 => Ok(n),
-                Some(_) => Err("not 2"),
-                None => Err("not 2"),
-            }
-        }).unwrap();
+        let value = retry(Exponential::from_millis(1), || match collection.next() {
+            Some(n) if n == 2 => Ok(n),
+            Some(_) => Err("not 2"),
+            None => Err("not 2"),
+        })
+        .unwrap();
 
         assert_eq!(value, 2);
     }
@@ -234,13 +240,12 @@ mod tests {
     fn succeeds_with_ranged_delay() {
         let mut collection = vec![1, 2].into_iter();
 
-        let value = retry(Range::from_millis(1, 10), || {
-            match collection.next() {
-                Some(n) if n == 2 => Ok(n),
-                Some(_) => Err("not 2"),
-                None => Err("not 2"),
-            }
-        }).unwrap();
+        let value = retry(Range::from_millis(1, 10), || match collection.next() {
+            Some(n) if n == 2 => Ok(n),
+            Some(_) => Err("not 2"),
+            None => Err("not 2"),
+        })
+        .unwrap();
 
         assert_eq!(value, 2);
     }
