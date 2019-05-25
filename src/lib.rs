@@ -2,13 +2,20 @@
 //!
 //! # Usage
 //!
-//! Retry an operation using the `retry` function. `retry` accepts an iterator over `Duration`s and
-//! a closure that returns a `Result`. The iterator is used to determine how long to wait after
-//! each unsuccessful try and how many times to try before giving up and returning `Result::Err`.
+//! Retry an operation using the `retry` function. `retry` accepts an iterator
+//! over `Duration`s and a closure that returns a `retry::OperationResult`. The
+//! iterator is used to determine how long to wait after each unsuccessful try
+//! and how many times to try before giving up and returning `Result::Err`. The
+//! closure is used to determine either the value to return, or whether to retry
+//! on non-fatal errors, or to immediately stop on fatal errors.
 //!
 //! Any type that implements `Iterator<Duration>` can be used to determine retry behavior, though a
 //! few useful implementations are provided in the `delay` module, including a fixed delay and
 //! exponential back-off.
+//!
+//! `retry::OperationResult` implements `From` for `std::result::Result`, so for
+//! the reasonably common case where no fatal errors are expected, just return
+//! a Result - `Result::Err` becomes `OperationResult::Retry`.
 //!
 //! ```
 //! # use retry::retry;
@@ -63,6 +70,24 @@
 //!
 //! assert!(result.is_ok());
 //! ```
+//!
+//! To deal with fatal errors, return `OperationResult` directly.
+//!
+//! ```
+//! # use retry::retry;
+//! # use retry::delay::Fixed;
+//! use retry::OperationResult;
+//! let mut collection = vec![1, 2].into_iter();
+//! let value = retry(Fixed::from_millis(1), || {
+//!     match collection.next() {
+//!         Some(n) if n == 2 => OperationResult::Ok(n),
+//!         Some(_) => OperationResult::Retry("not 2"),
+//!         None => OperationResult::Err("not found"),
+//!         }
+//!     }).unwrap();
+//!
+//! assert_eq!(value, 2);
+//! ```
 
 #![deny(missing_debug_implementations, missing_docs, warnings)]
 
@@ -74,22 +99,25 @@ use std::{
 };
 
 pub mod delay;
+pub mod opresult;
+
+pub use opresult::OperationResult;
 
 /// Retry the given operation synchronously until it succeeds, or until the given `Duration`
-/// iterator ends.
-pub fn retry<I, O, R, E>(iterable: I, mut operation: O) -> Result<R, Error<E>>
+pub fn retry<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
 where
     I: IntoIterator<Item = Duration>,
-    O: FnMut() -> Result<R, E>,
+    O: FnMut() -> OR,
+    OR: Into<OperationResult<R, E>>,
 {
     let mut iterator = iterable.into_iter();
     let mut current_try = 1;
     let mut total_delay = Duration::default();
 
     loop {
-        match operation() {
-            Ok(value) => return Ok(value),
-            Err(error) => {
+        match operation().into() {
+            OperationResult::Ok(value) => return Ok(value),
+            OperationResult::Retry(error) => {
                 if let Some(delay) = iterator.next() {
                     sleep(delay);
                     current_try += 1;
@@ -101,6 +129,13 @@ where
                         tries: current_try,
                     });
                 }
+            }
+            OperationResult::Err(error) => {
+                return Err(Error::Operation {
+                    error,
+                    total_delay,
+                    tries: current_try,
+                });
             }
         }
     }
@@ -158,6 +193,7 @@ mod tests {
     use std::time::Duration;
 
     use super::delay::{Exponential, Fixed, NoDelay, Range};
+    use super::opresult::OperationResult;
     use super::{retry, Error};
 
     #[test]
@@ -209,6 +245,26 @@ mod tests {
     }
 
     #[test]
+    fn fatal_errors() {
+        let mut collection = vec![1].into_iter();
+
+        let res = retry(NoDelay.take(2), || match collection.next() {
+            Some(n) if n == 2 => OperationResult::Ok(n),
+            Some(_) => OperationResult::Err("no retry"),
+            None => OperationResult::Err("not 2"),
+        });
+
+        assert_eq!(
+            res,
+            Err(Error::Operation {
+                error: "no retry",
+                tries: 1,
+                total_delay: Duration::from_millis(0)
+            })
+        );
+    }
+
+    #[test]
     fn succeeds_with_fixed_delay() {
         let mut collection = vec![1, 2].into_iter();
 
@@ -240,10 +296,12 @@ mod tests {
     fn succeeds_with_ranged_delay() {
         let mut collection = vec![1, 2].into_iter();
 
-        let value = retry(Range::from_millis_exclusive(1, 10), || match collection.next() {
-            Some(n) if n == 2 => Ok(n),
-            Some(_) => Err("not 2"),
-            None => Err("not 2"),
+        let value = retry(Range::from_millis_exclusive(1, 10), || {
+            match collection.next() {
+                Some(n) if n == 2 => Ok(n),
+                Some(_) => Err("not 2"),
+                None => Err("not 2"),
+            }
         })
         .unwrap();
 
