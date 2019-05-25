@@ -96,8 +96,8 @@ where
                     total_delay += delay;
                 } else {
                     return Err(Error::Operation {
-                        error: error,
-                        total_delay: total_delay,
+                        error,
+                        total_delay,
                         tries: current_try,
                     });
                 }

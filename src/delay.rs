@@ -21,7 +21,7 @@ impl Exponential {
     /// Create a new `Exponential` using the given millisecond duration as the initial delay.
     pub fn from_millis(base: u64) -> Self {
         Exponential {
-            base: base,
+            base,
             current: base,
         }
     }
@@ -169,6 +169,6 @@ impl Iterator for Range {
 pub fn jitter(duration: Duration) -> Duration {
     let jitter = random::<f64>();
     let secs = ((duration.as_secs() as f64) * jitter).ceil() as u64;
-    let nanos = ((duration.subsec_nanos() as f64) * jitter).ceil() as u32;
+    let nanos = ((f64::from(duration.subsec_nanos())) * jitter).ceil() as u32;
     Duration::new(secs, nanos)
 }
