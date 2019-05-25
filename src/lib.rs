@@ -64,33 +64,23 @@
 //! assert!(result.is_ok());
 //! ```
 
-#![deny(missing_debug_implementations)]
-#![deny(missing_docs)]
+#![deny(missing_debug_implementations, missing_docs, warnings)]
 
-extern crate rand;
-#[cfg(feature = "async")]
-extern crate futures;
-#[cfg(feature = "async_tokio_timer")]
-extern crate tokio_timer;
-#[cfg(feature = "async_tokio_core")]
-extern crate tokio_core;
-
-use std::error::Error as StdError;
-use std::fmt::Error as FmtError;
-use std::fmt::{Display,Formatter};
-use std::thread::sleep;
-use std::time::Duration;
+use std::{
+    error::Error as StdError,
+    fmt::{Display, Error as FmtError, Formatter},
+    thread::sleep,
+    time::Duration,
+};
 
 pub mod delay;
-#[cfg(feature = "async")]
-pub mod async;
 
 /// Retry the given operation synchronously until it succeeds, or until the given `Duration`
 /// iterator ends.
 pub fn retry<I, O, R, E>(iterable: I, mut operation: O) -> Result<R, Error<E>>
 where I: IntoIterator<Item=Duration>, O: FnMut() -> Result<R, E> {
     let mut iterator = iterable.into_iter();
-    let mut try = 1;
+    let mut current_try = 1;
     let mut total_delay = Duration::default();
 
     loop {
@@ -99,13 +89,13 @@ where I: IntoIterator<Item=Duration>, O: FnMut() -> Result<R, E> {
             Err(error) => {
                 if let Some(delay) = iterator.next() {
                     sleep(delay);
-                    try += 1;
+                    current_try += 1;
                     total_delay += delay;
                 } else {
                     return Err(Error::Operation {
                         error: error,
                         total_delay: total_delay,
-                        tries: try,
+                        tries: current_try,
                     });
                 }
             }

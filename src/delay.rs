@@ -1,11 +1,14 @@
 //! Different types of delay for retryable operations.
 
-use std::fmt::{Debug, Formatter, Error as FmtError};
 use std::time::Duration;
 use std::u64::{MAX as U64_MAX};
 
-use rand::distributions::{IndependentSample, Range as RandRange};
-use rand::{Closed01, random, ThreadRng, thread_rng};
+use rand::{
+    random,
+    thread_rng,
+    distributions::{Distribution, Uniform},
+    rngs::ThreadRng,
+};
 
 /// Each retry increases the delay since the last exponentially.
 #[derive(Debug)]
@@ -133,8 +136,9 @@ impl Iterator for NoDelay {
 }
 
 /// Each retry uses a duration randomly chosen from a range.
+#[derive(Debug)]
 pub struct Range {
-    range: RandRange<u64>,
+    distribution: Uniform<u64>,
     rng: ThreadRng,
 }
 
@@ -142,7 +146,7 @@ impl Range {
     /// Create a new `Range` between the given millisecond durations.
     pub fn from_millis(minimum: u64, maximum: u64) -> Self {
         Range {
-            range: RandRange::new(minimum, maximum),
+            distribution: Uniform::from(minimum..maximum),
             rng: thread_rng(),
         }
     }
@@ -152,19 +156,13 @@ impl Iterator for Range {
     type Item = Duration;
 
     fn next(&mut self) -> Option<Duration> {
-        Some(Duration::from_millis(self.range.ind_sample(&mut self.rng)))
-    }
-}
-
-impl Debug for Range {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
-        write!(f, "Range {{ range: RandRange<u64>, rng: ThreadRng }}")
+        Some(Duration::from_millis(self.distribution.sample(&mut self.rng)))
     }
 }
 
 /// Apply full random jitter to a duration.
 pub fn jitter(duration: Duration) -> Duration {
-    let Closed01(jitter) = random::<Closed01<f64>>();
+    let jitter = random::<f64>();
     let secs = ((duration.as_secs() as f64) * jitter).ceil() as u64;
     let nanos = ((duration.subsec_nanos() as f64) * jitter).ceil() as u32;
     Duration::new(secs, nanos)

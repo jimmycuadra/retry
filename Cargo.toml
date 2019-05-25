@@ -2,6 +2,7 @@
 authors = ["Jimmy Cuadra <jimmy@jimmycuadra.com>", "Sam Rijs <srijs@airpost.net>"]
 description = "Utilities for retrying operations that can fail."
 documentation = "https://docs.rs/retry"
+edition = "2018"
 homepage = "https://github.com/jimmycuadra/retry"
 keywords = ["utility", "utilities"]
 license = "MIT"
@@ -11,13 +12,4 @@ repository = "https://github.com/jimmycuadra/retry"
 version = "0.4.0"
 
 [dependencies]
-rand = "0.3.15"
-futures = { version = "0.1.9", optional = true }
-tokio-timer = { version = "0.1.0", optional = true }
-tokio-core = { version = "0.1.4", optional = true }
-
-[features]
-default = ["async_tokio_core", "async_tokio_timer"]
-async = ["futures"]
-async_tokio_core = ["async", "tokio-core"]
-async_tokio_timer = ["async", "tokio-timer"]
+rand = "0.6.5"
