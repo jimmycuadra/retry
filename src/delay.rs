@@ -1,7 +1,7 @@
 //! Different types of delay for retryable operations.
 
 use std::time::Duration;
-use std::u64::{MAX as U64_MAX};
+use std::u64::MAX as U64_MAX;
 
 use rand::{
     distributions::{Distribution, Uniform},
