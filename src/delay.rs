@@ -146,10 +146,26 @@ pub struct Range {
 }
 
 impl Range {
-    /// Create a new `Range` between the given millisecond durations.
-    pub fn from_millis(minimum: u64, maximum: u64) -> Self {
+    /// Create a new `Range` between the given millisecond durations, excluding the maximum value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the minimum is greater than or equal to the maximum.
+    pub fn from_millis_exclusive(minimum: u64, maximum: u64) -> Self {
         Range {
-            distribution: Uniform::from(minimum..maximum),
+            distribution: Uniform::new(minimum, maximum),
+            rng: thread_rng(),
+        }
+    }
+
+    /// Create a new `Range` between the given millisecond durations, including the maximum value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the minimum is greater than or equal to the maximum.
+    pub fn from_millis_inclusive(minimum: u64, maximum: u64) -> Self {
+        Range {
+            distribution: Uniform::new_inclusive(minimum, maximum),
             rng: thread_rng(),
         }
     }

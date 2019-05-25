@@ -240,7 +240,7 @@ mod tests {
     fn succeeds_with_ranged_delay() {
         let mut collection = vec![1, 2].into_iter();
 
-        let value = retry(Range::from_millis(1, 10), || match collection.next() {
+        let value = retry(Range::from_millis_exclusive(1, 10), || match collection.next() {
             Some(n) if n == 2 => Ok(n),
             Some(_) => Err("not 2"),
             None => Err("not 2"),
