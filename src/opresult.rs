@@ -1,4 +1,4 @@
-//! Provides a ternary result for operations
+//! Provides a ternary result for operations.
 //!
 //! # Examples
 //!
@@ -12,21 +12,20 @@
 //!         Some(n) if n == 2 => OperationResult::Ok(n),
 //!         Some(_) => OperationResult::Retry("not 2"),
 //!         None => OperationResult::Err("not found"),
-//!         }
-//!     }).unwrap();
+//!     }
+//! }).unwrap();
 //!
 //! assert_eq!(value, 2);
 //! ```
 
-/// `OperationResult` is a type that represents either success ([`Ok`]) or
-/// failure ([`Err`]) or possible failure that should be retried ([`Retry`]).
+/// A result that represents either success, retryable failure, or immediately-returning failure.
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum OperationResult<T, E> {
-    /// Contains the success value
+    /// Contains the success value.
     Ok(T),
-    /// Contains the error value if duration is exceeded
+    /// Contains the error value if duration is exceeded.
     Retry(E),
-    /// Contains an immediate error value
+    /// Contains an error value to return immediately.
     Err(E),
 }
 

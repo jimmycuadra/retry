@@ -2,20 +2,16 @@
 //!
 //! # Usage
 //!
-//! Retry an operation using the `retry` function. `retry` accepts an iterator
-//! over `Duration`s and a closure that returns a `retry::OperationResult`. The
-//! iterator is used to determine how long to wait after each unsuccessful try
-//! and how many times to try before giving up and returning `Result::Err`. The
-//! closure is used to determine either the value to return, or whether to retry
-//! on non-fatal errors, or to immediately stop on fatal errors.
+//! Retry an operation using the `retry` function. `retry` accepts an iterator over `Duration`s and
+//! a closure that returns a `Result` (or `OperationResult`; see below). The iterator is used to
+//! determine how long to wait after each unsuccessful try and how many times to try before giving
+//! up and returning `Result::Err`. The closure determines either the final successful value, or
+//! an error value, which can either be returned immediately or used to indicate that the
+//! operation should be retried.
 //!
-//! Any type that implements `Iterator<Duration>` can be used to determine retry behavior, though a
-//! few useful implementations are provided in the `delay` module, including a fixed delay and
-//! exponential back-off.
-//!
-//! `retry::OperationResult` implements `From` for `std::result::Result`, so for
-//! the reasonably common case where no fatal errors are expected, just return
-//! a Result - `Result::Err` becomes `OperationResult::Retry`.
+//! Any type that implements `Iterator<Item = Duration>` can be used to determine retry behavior,
+//! though a few useful implementations are provided in the `delay` module, including a fixed delay
+//! and exponential back-off.
 //!
 //! ```
 //! # use retry::retry;
@@ -71,7 +67,11 @@
 //! assert!(result.is_ok());
 //! ```
 //!
-//! To deal with fatal errors, return `OperationResult` directly.
+//! To deal with fatal errors, return `retry::OperationResult`, which is like std's `Result`, but
+//! with a third case to distinguish between errors that should cause a retry and errors that
+//! should immediately return, halting retry behavior. (Internally, `OperationResult` is always
+//! used, and closures passed to `retry` that return plain `Result` are converted into
+//! `OperationResult`.)
 //!
 //! ```
 //! # use retry::retry;
@@ -83,8 +83,8 @@
 //!         Some(n) if n == 2 => OperationResult::Ok(n),
 //!         Some(_) => OperationResult::Retry("not 2"),
 //!         None => OperationResult::Err("not found"),
-//!         }
-//!     }).unwrap();
+//!     }
+//! }).unwrap();
 //!
 //! assert_eq!(value, 2);
 //! ```
@@ -99,11 +99,13 @@ use std::{
 };
 
 pub mod delay;
-pub mod opresult;
+mod opresult;
 
+#[doc(inline)]
 pub use opresult::OperationResult;
 
 /// Retry the given operation synchronously until it succeeds, or until the given `Duration`
+/// iterator ends.
 pub fn retry<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
 where
     I: IntoIterator<Item = Duration>,
