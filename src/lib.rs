@@ -281,6 +281,14 @@ mod tests {
     }
 
     #[test]
+    fn fixed_delay_from_duration() {
+        assert_eq!(
+            Fixed::from_millis(1_000).next(),
+            Fixed::from(Duration::from_secs(1)).next(),
+        );
+    }
+
+    #[test]
     fn succeeds_with_exponential_delay() {
         let mut collection = vec![1, 2].into_iter();
 
