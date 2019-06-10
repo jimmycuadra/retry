@@ -126,6 +126,14 @@ impl Iterator for Fixed {
     }
 }
 
+impl From<Duration> for Fixed {
+    fn from(delay: Duration) -> Self {
+        Self {
+            duration: delay.into(),
+        }
+    }
+}
+
 /// Each retry happens immediately without any delay.
 #[derive(Debug)]
 pub struct NoDelay;
