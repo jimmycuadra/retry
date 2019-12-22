@@ -104,6 +104,9 @@ mod opresult;
 #[doc(inline)]
 pub use opresult::OperationResult;
 
+#[cfg(feature = "async")]
+pub mod r#async;
+
 /// Retry the given operation synchronously until it succeeds, or until the given `Duration`
 /// iterator ends.
 pub fn retry<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
@@ -182,7 +185,7 @@ where
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             Error::Operation { ref error, .. } => Some(error),
             Error::Internal(_) => None,

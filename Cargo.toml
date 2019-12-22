@@ -1,5 +1,9 @@
 [package]
-authors = ["Jimmy Cuadra <jimmy@jimmycuadra.com>", "Sam Rijs <srijs@airpost.net>"]
+authors = [
+    "Jimmy Cuadra <jimmy@jimmycuadra.com>",
+    "Sam Rijs <srijs@airpost.net>",
+    "Felix Stegmaier <stegmaier.felix@gmail.com>",
+]
 description = "Utilities for retrying operations that can fail."
 documentation = "https://docs.rs/retry"
 edition = "2018"
@@ -13,3 +17,8 @@ version = "0.5.1"
 
 [dependencies]
 rand = "0.6.5"
+async-std = { version = "1", optional = true }
+
+[features]
+default = []
+async = ["async-std"]
