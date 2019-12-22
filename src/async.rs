@@ -77,26 +77,20 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        OperationResult,
-        Error,
-        r#async::retry,
         delay::{Fixed, NoDelay},
-    };
-    use std::{
-        iter::empty,
-        time::Duration
+        r#async::retry,
+        Error, OperationResult,
     };
     use async_std::{
+        sync::{Arc, Mutex},
         task::block_on,
-        sync::{Arc, Mutex}
     };
+    use std::{iter::empty, time::Duration};
 
     #[test]
     fn attempts_just_once() {
         let delay = empty();
-        let res = block_on(retry(delay, || async move {
-            Err::<(), u64>(42)
-        }));
+        let res = block_on(retry(delay, || async move { Err::<(), u64>(42) }));
 
         assert_eq!(
             res,
@@ -111,9 +105,7 @@ mod test {
     #[test]
     fn attempts_until_max_retries_exceeded() {
         let delay = Fixed::from_millis(10).take(2);
-        let res = block_on(retry(delay, || async move {
-            Err::<(), u64>(42)
-        }));
+        let res = block_on(retry(delay, || async move { Err::<(), u64>(42) }));
 
         assert_eq!(
             res,
@@ -131,25 +123,27 @@ mod test {
         let num_calls = Arc::new(Mutex::new(0));
         let num_calls = &num_calls;
         let res = block_on(retry(delay, {
-            || async move {
-                let num_calls = num_calls.clone();
-                let mut lock = num_calls.lock().await;
-                *lock += 1;
-                if *lock < 4 {
-                    Err::<u64, u64>(42)
-                } else {
-                    Ok::<u64, u64>(*lock)
+            || {
+                async move {
+                    let num_calls = num_calls.clone();
+                    let mut lock = num_calls.lock().await;
+                    *lock += 1;
+                    if *lock < 4 {
+                        Err::<u64, u64>(42)
+                    } else {
+                        Ok::<u64, u64>(*lock)
+                    }
                 }
-        }}));
+            }
+        }));
 
         assert_eq!(res, Ok(4));
     }
 
     #[test]
     fn fatal_errors() {
-
-        let res: Result<(), Error<&str>> = block_on(retry(NoDelay.take(2), || async move {
-           OperationResult::Err("no retry")
+        let res: Result<(), Error<&str>> = block_on(retry(NoDelay.take(2), || {
+            async move { OperationResult::Err("no retry") }
         }));
 
         assert_eq!(
