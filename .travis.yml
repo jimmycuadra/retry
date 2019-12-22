@@ -5,5 +5,11 @@ rust:
 matrix:
   allow_failures:
     - rust: "beta"
+script:
+  - cargo build --verbose --all
+  - cargo test --verbose --all
+  - cargo build --verbose --all --all-features
+  - cargo test --verbose --all --all-features
+cache: cargo
 notifications:
   email: false
