@@ -2,7 +2,6 @@
 authors = [
     "Jimmy Cuadra <jimmy@jimmycuadra.com>",
     "Sam Rijs <srijs@airpost.net>",
-    "Felix Stegmaier <stegmaier.felix@gmail.com>",
 ]
 description = "Utilities for retrying operations that can fail."
 documentation = "https://docs.rs/retry"
