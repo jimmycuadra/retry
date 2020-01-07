@@ -143,6 +143,44 @@ where
     }
 }
 
+/// Retry with iteration number. See also [retry](fn.retry.html)
+pub fn retryi<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
+where
+    I: IntoIterator<Item = Duration>,
+    O: FnMut(u64) -> OR,
+    OR: Into<OperationResult<R, E>>,
+{
+    let mut iterator = iterable.into_iter();
+    let mut current_try = 1;
+    let mut total_delay = Duration::default();
+
+    loop {
+        match operation(current_try).into() {
+            OperationResult::Ok(value) => return Ok(value),
+            OperationResult::Retry(error) => {
+                if let Some(delay) = iterator.next() {
+                    sleep(delay);
+                    current_try += 1;
+                    total_delay += delay;
+                } else {
+                    return Err(Error::Operation {
+                        error,
+                        total_delay,
+                        tries: current_try,
+                    });
+                }
+            }
+            OperationResult::Err(error) => {
+                return Err(Error::Operation {
+                    error,
+                    total_delay,
+                    tries: current_try,
+                });
+            }
+        }
+    }
+}
+
 /// An error with a retryable operation.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error<E> {
