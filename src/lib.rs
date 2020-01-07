@@ -89,7 +89,7 @@
 //! assert_eq!(value, 2);
 //! ```
 
-#![deny(missing_debug_implementations, missing_docs, warnings)]
+#![deny(missing_debug_implementations, missing_docs)]
 
 use std::{
     error::Error as StdError,
@@ -182,7 +182,7 @@ where
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             Error::Operation { ref error, .. } => Some(error),
             Error::Internal(_) => None,
