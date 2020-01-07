@@ -1,5 +1,6 @@
 //! Different types of delay for retryable operations.
 
+use std::ops::{Range as StdRange, RangeInclusive};
 use std::time::Duration;
 use std::u64::MAX as U64_MAX;
 
@@ -43,6 +44,12 @@ impl Iterator for Exponential {
     }
 }
 
+impl From<Duration> for Exponential {
+    fn from(duration: Duration) -> Self {
+        Self::from_millis(duration.as_millis() as u64)
+    }
+}
+
 /// Each retry uses a delay which is the sum of the two previous delays.
 ///
 /// Depending on the problem at hand, a fibonacci delay strategy might
@@ -82,6 +89,12 @@ impl Iterator for Fibonacci {
         }
 
         Some(duration)
+    }
+}
+
+impl From<Duration> for Fibonacci {
+    fn from(duration: Duration) -> Self {
+        Self::from_millis(duration.as_millis() as u64)
     }
 }
 
@@ -186,6 +199,21 @@ impl Iterator for Range {
         Some(Duration::from_millis(
             self.distribution.sample(&mut self.rng),
         ))
+    }
+}
+
+impl From<StdRange<Duration>> for Range {
+    fn from(range: StdRange<Duration>) -> Self {
+        Self::from_millis_exclusive(range.start.as_millis() as u64, range.end.as_millis() as u64)
+    }
+}
+
+impl From<RangeInclusive<Duration>> for Range {
+    fn from(range: RangeInclusive<Duration>) -> Self {
+        Self::from_millis_inclusive(
+            range.start().as_millis() as u64,
+            range.end().as_millis() as u64,
+        )
     }
 }
 
