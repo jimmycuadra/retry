@@ -89,7 +89,7 @@
 //! assert_eq!(value, 2);
 //! ```
 
-#![deny(missing_debug_implementations, missing_docs)]
+#![deny(missing_debug_implementations, missing_docs, warnings)]
 
 use std::{
     error::Error as StdError,
