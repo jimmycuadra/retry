@@ -182,7 +182,7 @@ where
         }
     }
 
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match *self {
             Error::Operation { ref error, .. } => Some(error),
             Error::Internal(_) => None,
