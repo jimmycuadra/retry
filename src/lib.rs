@@ -112,12 +112,22 @@ where
     O: FnMut() -> OR,
     OR: Into<OperationResult<R, E>>,
 {
+    retry_with_index(iterable, |_| operation())
+}
+
+/// Retry with iteration number. See also [retry](fn.retry.html)
+pub fn retry_with_index<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
+where
+    I: IntoIterator<Item = Duration>,
+    O: FnMut(u64) -> OR,
+    OR: Into<OperationResult<R, E>>,
+{
     let mut iterator = iterable.into_iter();
     let mut current_try = 1;
     let mut total_delay = Duration::default();
 
     loop {
-        match operation().into() {
+        match operation(current_try).into() {
             OperationResult::Ok(value) => return Ok(value),
             OperationResult::Retry(error) => {
                 if let Some(delay) = iterator.next() {
