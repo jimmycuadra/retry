@@ -112,11 +112,11 @@ where
     O: FnMut() -> OR,
     OR: Into<OperationResult<R, E>>,
 {
-    retryi(iterable, |_| operation())
+    retry_with_index(iterable, |_| operation())
 }
 
 /// Retry with iteration number. See also [retry](fn.retry.html)
-pub fn retryi<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
+pub fn retry_with_index<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
 where
     I: IntoIterator<Item = Duration>,
     O: FnMut(u64) -> OR,
