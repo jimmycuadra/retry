@@ -112,35 +112,7 @@ where
     O: FnMut() -> OR,
     OR: Into<OperationResult<R, E>>,
 {
-    let mut iterator = iterable.into_iter();
-    let mut current_try = 1;
-    let mut total_delay = Duration::default();
-
-    loop {
-        match operation().into() {
-            OperationResult::Ok(value) => return Ok(value),
-            OperationResult::Retry(error) => {
-                if let Some(delay) = iterator.next() {
-                    sleep(delay);
-                    current_try += 1;
-                    total_delay += delay;
-                } else {
-                    return Err(Error::Operation {
-                        error,
-                        total_delay,
-                        tries: current_try,
-                    });
-                }
-            }
-            OperationResult::Err(error) => {
-                return Err(Error::Operation {
-                    error,
-                    total_delay,
-                    tries: current_try,
-                });
-            }
-        }
-    }
+    retryi(iterable, |_| operation())
 }
 
 /// Retry with iteration number. See also [retry](fn.retry.html)
