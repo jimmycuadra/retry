@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/jimmycuadra/retry.svg?branch=master)](https://travis-ci.org/jimmycuadra/retry)
 
-Crate **retry** provides utilities for retrying operations that can fail.
+Crate `retry` provides utilities for retrying operations that can fail.
 
 ## Documentation
 
