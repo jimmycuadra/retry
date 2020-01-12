@@ -12,4 +12,4 @@ repository = "https://github.com/jimmycuadra/retry"
 version = "0.5.1"
 
 [dependencies]
-rand = "0.6.5"
+rand = "0.7.3"
