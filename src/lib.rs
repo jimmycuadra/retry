@@ -88,6 +88,31 @@
 //!
 //! assert_eq!(value, 2);
 //! ```
+//!
+//! If your operation needs to know how many times it's been tried, use the `retry_with_index`
+//! function. This works the same as `retry`, but passes the number of the current try to the
+//! closure as an argument.
+//!
+//! ```
+//! # use retry::retry_with_index;
+//! # use retry::delay::Fixed;
+//! # use retry::OperationResult;
+//! let mut collection = vec![1, 2, 3, 4, 5].into_iter();
+//!
+//! let result = retry_with_index(Fixed::from_millis(100), |current_try| {
+//!     if current_try > 3 {
+//!         return OperationResult::Err("did not succeed within 3 tries");
+//!     }
+//!
+//!     match collection.next() {
+//!         Some(n) if n == 5 => OperationResult::Ok("n is 5!"),
+//!         Some(_) => OperationResult::Retry("n must be 5!"),
+//!         None => OperationResult::Retry("n was never 5!"),
+//!     }
+//! });
+//!
+//! assert!(result.is_err());
+//! ```
 
 #![deny(missing_debug_implementations, missing_docs, warnings)]
 
@@ -115,7 +140,9 @@ where
     retry_with_index(iterable, |_| operation())
 }
 
-/// Retry with iteration number. See also [retry](fn.retry.html)
+/// Retry the given operation synchronously until it succeeds, or until the given `Duration`
+/// iterator ends, with each iteration of the operation receiving the number of the attempt as an
+/// argument.
 pub fn retry_with_index<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
 where
     I: IntoIterator<Item = Duration>,
@@ -206,7 +233,7 @@ mod tests {
 
     use super::delay::{Exponential, Fixed, NoDelay, Range};
     use super::opresult::OperationResult;
-    use super::{retry, Error};
+    use super::{retry, retry_with_index, Error};
 
     #[test]
     fn succeeds_with_infinite_retries() {
@@ -326,5 +353,19 @@ mod tests {
         .unwrap();
 
         assert_eq!(value, 2);
+    }
+
+    #[test]
+    fn succeeds_with_index() {
+        let mut collection = vec![1, 2, 3].into_iter();
+
+        let value = retry_with_index(NoDelay, |current_try| match collection.next() {
+            Some(n) if n == current_try => Ok(n),
+            Some(_) => Err("not current_try"),
+            None => Err("not current_try"),
+        })
+        .unwrap();
+
+        assert_eq!(value, 1);
     }
 }
