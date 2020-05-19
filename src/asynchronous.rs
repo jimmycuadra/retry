@@ -75,7 +75,7 @@ where
     S: Sleep,
     I: IntoIterator<Item = Duration>,
     A: TryFuture,
-    O: FnMut() -> A,
+    O: FnMut(u64) -> A,
 {
     delay: I::IntoIter,
     state: RetryState<S, A>,
@@ -90,7 +90,7 @@ where
     S: Sleep,
     I: IntoIterator<Item = Duration>,
     A: TryFuture,
-    O: FnMut() -> A,
+    O: FnMut(u64) -> A,
 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         write!(
@@ -102,12 +102,28 @@ where
 }
 
 /// Retry the given operation asynchronously until it succeeds, or until the given Duration iterator ends.
-pub fn retry<S, I, O, A>(sleep: S, iterable: I, operation: O) -> RetryFuture<S, I, O, A>
+pub async fn retry<S, I, O, A>(
+    sleep: S,
+    iterable: I,
+    mut operation: O,
+) -> Result<A::Ok, Error<A::Error>>
 where
     S: Sleep,
     I: IntoIterator<Item = Duration>,
     A: TryFuture,
     O: FnMut() -> A,
+{
+    retry_with_index(sleep, iterable, |_| operation()).await
+}
+
+/// Retry the given operation asynchronously until it succeeds, or until the given Duration iterator ends,
+/// with each iteration of the operation receiving the number of the attempt as an argument.
+pub fn retry_with_index<S, I, O, A>(sleep: S, iterable: I, operation: O) -> RetryFuture<S, I, O, A>
+where
+    S: Sleep,
+    I: IntoIterator<Item = Duration>,
+    A: TryFuture,
+    O: FnMut(u64) -> A,
 {
     RetryFuture::spawn(sleep, iterable, operation)
 }
@@ -117,21 +133,22 @@ where
     S: Sleep,
     I: IntoIterator<Item = Duration>,
     A: TryFuture,
-    O: FnMut() -> A,
+    O: FnMut(u64) -> A,
 {
     fn spawn(sleep: S, iterable: I, mut operation: O) -> RetryFuture<S, I, O, A> {
+        let current_try = 1;
         RetryFuture {
             delay: iterable.into_iter(),
-            state: RetryState::Running(operation()),
+            state: RetryState::Running(operation(current_try)),
             operation,
             sleep,
             total_delay: Duration::default(),
-            tries: 1,
+            tries: current_try,
         }
     }
 
     fn attempt(&mut self) {
-        let future = (self.operation)();
+        let future = (self.operation)(self.tries);
         self.state = RetryState::Running(future);
     }
 
@@ -158,7 +175,7 @@ where
     S: Sleep,
     I: IntoIterator<Item = Duration>,
     A: TryFuture,
-    O: FnMut() -> A,
+    O: FnMut(u64) -> A,
 {
     type Output = Result<A::Ok, Error<A::Error>>;
 
