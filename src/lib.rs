@@ -123,6 +123,7 @@ use std::{
     time::Duration,
 };
 
+pub mod asynchronous;
 pub mod delay;
 mod opresult;
 
@@ -204,24 +205,20 @@ where
     E: StdError,
 {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FmtError> {
-        write!(formatter, "{}", self.description())
+        match self {
+            Error::Operation { error, .. } => write!(formatter, "{}", error),
+            Error::Internal(description) => write!(formatter, "{}", description),
+        }
     }
 }
 
 impl<E> StdError for Error<E>
 where
-    E: StdError,
+    E: StdError + 'static,
 {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Operation { ref error, .. } => error.description(),
-            Error::Internal(ref description) => description,
-        }
-    }
-
-    fn cause(&self) -> Option<&dyn StdError> {
-        match *self {
-            Error::Operation { ref error, .. } => Some(error),
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            Error::Operation { error, .. } => Some(error),
             Error::Internal(_) => None,
         }
     }
