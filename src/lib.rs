@@ -203,6 +203,7 @@ impl<E> Display for Error<E>
 where
     E: StdError,
 {
+    #[allow(deprecated)]
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FmtError> {
         write!(formatter, "{}", self.description())
     }
@@ -212,6 +213,7 @@ impl<E> StdError for Error<E>
 where
     E: StdError,
 {
+    #[allow(deprecated)]
     fn description(&self) -> &str {
         match *self {
             Error::Operation { ref error, .. } => error.description(),
@@ -334,6 +336,23 @@ mod tests {
             Some(_) => Err("not 2"),
             None => Err("not 2"),
         })
+        .unwrap();
+
+        assert_eq!(value, 2);
+    }
+
+    #[test]
+    fn succeeds_with_exponential_delay_with_factor() {
+        let mut collection = vec![1, 2].into_iter();
+
+        let value = retry(
+            Exponential::from_millis_with_factor(1000, 2.0),
+            || match collection.next() {
+                Some(n) if n == 2 => Ok(n),
+                Some(_) => Err("not 2"),
+                None => Err("not 2"),
+            },
+        )
         .unwrap();
 
         assert_eq!(value, 2);
