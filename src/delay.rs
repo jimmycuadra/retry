@@ -20,10 +20,11 @@ pub struct Exponential {
 
 impl Exponential {
     /// Create a new `Exponential` using the given millisecond duration as the initial delay.
+    /// The value will be incremented by a factor of 2 at every retry.
     pub fn from_millis(base: u64) -> Self {
         Exponential {
             current: base,
-            factor: base as f64,
+            factor: 2.0,
         }
     }
 
