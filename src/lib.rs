@@ -48,24 +48,29 @@
 //! assert!(result.is_err());
 //! ```
 //!
-//! To apply random jitter to any delay strategy, the `jitter` function can be used in combination
-//! with the `Iterator` API:
-//!
-//! ```
-//! # use retry::retry;
-//! # use retry::delay::{Exponential, jitter};
-//! let mut collection = vec![1, 2, 3].into_iter();
-//!
-//! let result = retry(Exponential::from_millis(10).map(jitter).take(3), || {
-//!     match collection.next() {
-//!         Some(n) if n == 3 => Ok("n is 3!"),
-//!         Some(_) => Err("n must be 3!"),
-//!         None => Err("n was never 3!"),
-//!     }
-//! });
-//!
-//! assert!(result.is_ok());
-//! ```
+#![cfg_attr(
+    feature = "random",
+    doc = r##"
+To apply random jitter to any delay strategy, the `jitter` function can be used in combination
+with the `Iterator` API:
+
+```
+# use retry::retry;
+# use retry::delay::{Exponential, jitter};
+let mut collection = vec![1, 2, 3].into_iter();
+
+let result = retry(Exponential::from_millis(10).map(jitter).take(3), || {
+    match collection.next() {
+        Some(n) if n == 3 => Ok("n is 3!"),
+        Some(_) => Err("n must be 3!"),
+        None => Err("n was never 3!"),
+    }
+});
+
+assert!(result.is_ok());
+```
+"##
+)]
 //!
 //! To deal with fatal errors, return `retry::OperationResult`, which is like std's `Result`, but
 //! with a third case to distinguish between errors that should cause a retry and errors that
@@ -113,6 +118,10 @@
 //!
 //! assert!(result.is_err());
 //! ```
+//!
+//! # Features
+//!
+//! - `random`: offer some random delay utilities (on by default)
 
 #![deny(missing_debug_implementations, missing_docs, warnings)]
 
@@ -233,7 +242,7 @@ where
 mod tests {
     use std::time::Duration;
 
-    use super::delay::{Exponential, Fixed, NoDelay, Range};
+    use super::delay::{Exponential, Fixed, NoDelay};
     use super::opresult::OperationResult;
     use super::{retry, retry_with_index, Error};
 
@@ -359,7 +368,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "random")]
     fn succeeds_with_ranged_delay() {
+        use super::delay::Range;
+
         let mut collection = vec![1, 2].into_iter();
 
         let value = retry(Range::from_millis_exclusive(1, 10), || {
