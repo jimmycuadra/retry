@@ -210,7 +210,7 @@ pub enum Error<E> {
 
 impl<E> Display for Error<E>
 where
-    E: StdError,
+    E: Display,
 {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FmtError> {
         match self {
