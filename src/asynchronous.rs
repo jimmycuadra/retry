@@ -32,17 +32,17 @@
 //! }
 //! ```
 
-use std::error::{Error as StdError};
-use std::io::{Error as IoError};
+use std::error::Error as StdError;
 use std::fmt::{Debug, Error as FmtError, Formatter};
+use std::io::Error as IoError;
 use std::time::Duration;
 
-use futures::{Async, IntoFuture, Future, Poll};
 use futures::future::{Either, Flatten, FutureResult};
-#[cfg(feature = "async_tokio_timer")]
-use tokio_timer::{Timer, TimerError, Sleep as TimerSleep};
+use futures::{Async, Future, IntoFuture, Poll};
 #[cfg(feature = "async_tokio_core")]
 use tokio_core::reactor::{Handle as ReactorHandle, Timeout as ReactorTimeout};
+#[cfg(feature = "async_tokio_timer")]
+use tokio_timer::{Sleep as TimerSleep, Timer, TimerError};
 
 use super::Error;
 
@@ -76,33 +76,65 @@ impl Sleep for ReactorHandle {
 
 /// Keep track of the state of our future, whether it
 /// currently sleeps or executes the operation.
-enum RetryState<S, A> where S: Sleep, A: IntoFuture {
+enum RetryState<S, A>
+where
+    S: Sleep,
+    A: IntoFuture,
+{
     Running(A::Future),
-    Sleeping(S::Future)
+    Sleeping(S::Future),
 }
 
 /// Future that drives multiple attempts at an operation.
-pub struct RetryFuture<S, I, O, A> where S: Sleep, I: IntoIterator<Item = Duration>, A: IntoFuture, O: FnMut() -> A {
+pub struct RetryFuture<S, I, O, A>
+where
+    S: Sleep,
+    I: IntoIterator<Item = Duration>,
+    A: IntoFuture,
+    O: FnMut() -> A,
+{
     delay: I::IntoIter,
     state: RetryState<S, A>,
     operation: O,
     sleep: S,
     total_delay: Duration,
-    tries: u64
+    tries: u64,
 }
 
-impl<S, I, O, A> Debug for RetryFuture<S, I, O, A> where S: Sleep, I: IntoIterator<Item = Duration>, A: IntoFuture, O: FnMut() -> A {
+impl<S, I, O, A> Debug for RetryFuture<S, I, O, A>
+where
+    S: Sleep,
+    I: IntoIterator<Item = Duration>,
+    A: IntoFuture,
+    O: FnMut() -> A,
+{
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
-        write!(f, "RetryFuture {{ total_delay: {:?}, tries: {:?} }}", self.total_delay, self.tries)
+        write!(
+            f,
+            "RetryFuture {{ total_delay: {:?}, tries: {:?} }}",
+            self.total_delay, self.tries
+        )
     }
 }
 
 /// Retry the given operation asynchronously until it succeeds, or until the given Duration iterator ends.
-pub fn retry<S, I, O, A>(sleep: S, iterable: I, operation: O) -> RetryFuture<S, I, O, A> where S: Sleep, I: IntoIterator<Item = Duration>, A: IntoFuture, O: FnMut() -> A {
+pub fn retry<S, I, O, A>(sleep: S, iterable: I, operation: O) -> RetryFuture<S, I, O, A>
+where
+    S: Sleep,
+    I: IntoIterator<Item = Duration>,
+    A: IntoFuture,
+    O: FnMut() -> A,
+{
     RetryFuture::spawn(sleep, iterable, operation)
 }
 
-impl<S, I, O, A> RetryFuture<S, I, O, A> where S: Sleep, I: IntoIterator<Item = Duration>, A: IntoFuture, O: FnMut() -> A {
+impl<S, I, O, A> RetryFuture<S, I, O, A>
+where
+    S: Sleep,
+    I: IntoIterator<Item = Duration>,
+    A: IntoFuture,
+    O: FnMut() -> A,
+{
     fn spawn(sleep: S, iterable: I, mut operation: O) -> RetryFuture<S, I, O, A> {
         RetryFuture {
             delay: iterable.into_iter(),
@@ -110,7 +142,7 @@ impl<S, I, O, A> RetryFuture<S, I, O, A> where S: Sleep, I: IntoIterator<Item = 
             operation: operation,
             sleep: sleep,
             total_delay: Duration::default(),
-            tries: 1
+            tries: 1,
         }
     }
 
@@ -122,10 +154,10 @@ impl<S, I, O, A> RetryFuture<S, I, O, A> where S: Sleep, I: IntoIterator<Item = 
 
     fn retry(&mut self, err: A::Error) -> Poll<A::Item, Error<A::Error>> {
         match self.delay.next() {
-            None => Err(Error::Operation{
+            None => Err(Error::Operation {
                 error: err,
                 total_delay: self.total_delay,
-                tries: self.tries
+                tries: self.tries,
             }),
             Some(duration) => {
                 self.total_delay += duration;
@@ -138,30 +170,34 @@ impl<S, I, O, A> RetryFuture<S, I, O, A> where S: Sleep, I: IntoIterator<Item = 
     }
 }
 
-impl<S, I, O, A> Future for RetryFuture<S, I, O, A> where S: Sleep, I: IntoIterator<Item = Duration>, A: IntoFuture, O: FnMut() -> A {
+impl<S, I, O, A> Future for RetryFuture<S, I, O, A>
+where
+    S: Sleep,
+    I: IntoIterator<Item = Duration>,
+    A: IntoFuture,
+    O: FnMut() -> A,
+{
     type Item = A::Item;
     type Error = Error<A::Error>;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         let result = match self.state {
-            RetryState::Running(ref mut future) =>
-                Either::A(future.poll()),
-            RetryState::Sleeping(ref mut future) =>
-                Either::B(future.poll())
+            RetryState::Running(ref mut future) => Either::A(future.poll()),
+            RetryState::Sleeping(ref mut future) => Either::B(future.poll()),
         };
 
         match result {
             Either::A(poll_result) => match poll_result {
                 Ok(async) => Ok(async),
-                Err(err) => self.retry(err)
+                Err(err) => self.retry(err),
             },
             Either::B(poll_result) => {
-                let poll_async = poll_result
-                    .map_err(|err| Error::Internal(err.description().to_string()))?;
+                let poll_async =
+                    poll_result.map_err(|err| Error::Internal(err.description().to_string()))?;
 
                 match poll_async {
                     Async::NotReady => Ok(Async::NotReady),
-                    Async::Ready(_) => self.attempt()
+                    Async::Ready(_) => self.attempt(),
                 }
             }
         }
@@ -177,34 +213,42 @@ fn attempts_just_once() {
     let res = retry(timer, delay, || {
         num_calls += 1;
         Err::<(), u64>(42)
-    }).wait();
+    })
+    .wait();
 
     assert_eq!(num_calls, 1);
-    assert_eq!(res, Err(Error::Operation{
-        error: 42,
-        tries: 1,
-        total_delay: Duration::from_millis(0)
-    }));
+    assert_eq!(
+        res,
+        Err(Error::Operation {
+            error: 42,
+            tries: 1,
+            total_delay: Duration::from_millis(0)
+        })
+    );
 }
 
 #[test]
 fn attempts_until_max_retries_exceeded() {
-    use std::time::Duration;
     use super::delay::Fixed;
+    use std::time::Duration;
     let timer = Timer::default();
     let delay = Fixed::from_millis(100).take(2);
     let mut num_calls = 0;
     let res = retry(timer, delay, || {
         num_calls += 1;
         Err::<(), u64>(42)
-    }).wait();
+    })
+    .wait();
 
     assert_eq!(num_calls, 3);
-    assert_eq!(res, Err(Error::Operation{
-        error: 42,
-        tries: 3,
-        total_delay: Duration::from_millis(200)
-    }));
+    assert_eq!(
+        res,
+        Err(Error::Operation {
+            error: 42,
+            tries: 3,
+            total_delay: Duration::from_millis(200)
+        })
+    );
 }
 
 #[test]
@@ -220,7 +264,8 @@ fn attempts_until_success() {
         } else {
             Ok::<(), u64>(())
         }
-    }).wait();
+    })
+    .wait();
 
     assert_eq!(res, Ok(()));
     assert_eq!(num_calls, 4);
