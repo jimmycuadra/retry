@@ -210,11 +210,13 @@ pub enum Error<E> {
 
 impl<E> Display for Error<E>
 where
-    E: StdError,
+    E: Display,
 {
-    #[allow(deprecated)]
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FmtError> {
-        write!(formatter, "{}", self.description())
+        match self {
+            Error::Operation { error, .. } => Display::fmt(error, formatter),
+            Error::Internal(description) => formatter.write_str(description),
+        }
     }
 }
 
