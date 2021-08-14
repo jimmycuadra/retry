@@ -37,3 +37,71 @@ impl<T, E> From<Result<T, E>> for OperationResult<T, E> {
         }
     }
 }
+
+impl<T, E> OperationResult<T, E> {
+    /// Returns `true` if the result is [`OperationResult::Ok`].
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use retry::OperationResult;
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Ok(-3);
+    /// assert_eq!(x.is_ok(), true);
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Retry("Some error message");
+    /// assert_eq!(x.is_ok(), false);
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Err("Some other error message");
+    /// assert_eq!(x.is_ok(), false);
+    /// ```
+    pub fn is_ok(&self) -> bool {
+        matches!(self, Self::Ok(_))
+    }
+
+    /// Returns `true` if the result is [`OperationResult::Retry`].
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use retry::OperationResult;
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Ok(-3);
+    /// assert_eq!(x.is_retry(), false);
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Retry("Some error message");
+    /// assert_eq!(x.is_retry(), true);
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Err("Some other error message");
+    /// assert_eq!(x.is_retry(), false);
+    /// ```
+    pub fn is_retry(&self) -> bool {
+        matches!(self, Self::Retry(_))
+    }
+
+    /// Returns `true` if the result is [`OperationResult::Err`].
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use retry::OperationResult;
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Ok(-3);
+    /// assert_eq!(x.is_err(), false);
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Retry("Some error message");
+    /// assert_eq!(x.is_err(), false);
+    ///
+    /// let x: OperationResult<i32, &str> = OperationResult::Err("Some other error message");
+    /// assert_eq!(x.is_err(), true);
+    /// ```
+    pub fn is_err(&self) -> bool {
+        matches!(self, Self::Err(_))
+    }
+}
