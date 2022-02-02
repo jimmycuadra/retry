@@ -85,7 +85,7 @@ fn range_uniform() {
 }
 
 #[test]
-#[should_panic()]
+#[should_panic]
 fn range_uniform_wrong_input() {
     Range::from_millis_exclusive(0, 0);
 }
