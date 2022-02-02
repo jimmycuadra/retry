@@ -75,3 +75,23 @@ pub fn jitter(duration: Duration) -> Duration {
     let nanos = ((f64::from(duration.subsec_nanos())) * jitter).ceil() as u32;
     Duration::new(secs, nanos)
 }
+
+#[test]
+fn range_uniform() {
+    let mut range = Range::from_millis_exclusive(0, 1);
+    assert_eq!(Duration::from_millis(0), range.next().unwrap());
+    assert_eq!(Duration::from_millis(0), range.next().unwrap());
+    assert_eq!(Duration::from_millis(0), range.next().unwrap());
+}
+
+#[test]
+#[should_panic]
+fn range_uniform_wrong_input() {
+    Range::from_millis_exclusive(0, 0);
+}
+
+#[test]
+fn test_jitter() {
+    assert_eq!(Duration::from_millis(0), jitter(Duration::from_millis(0)));
+    assert!(Duration::from_millis(0) < jitter(Duration::from_millis(2)));
+}
