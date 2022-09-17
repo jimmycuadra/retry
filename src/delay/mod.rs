@@ -17,8 +17,19 @@ pub struct Exponential {
 }
 
 impl Exponential {
-    /// Create a new `Exponential` using the given millisecond duration as the initial delay.
+    /// Create a new `Exponential` using the given millisecond duration as the initial delay and an
+    /// exponential backoff factor of `2.0`.
     pub fn from_millis(base: u64) -> Self {
+        Exponential {
+            current: base,
+            factor: 2.0,
+        }
+    }
+
+    /// Create a new `Exponential` using the given millisecond duration as the initial delay and
+    /// the same duration as the exponential backoff factor. This was the behavior of `from_millis`
+    /// prior to version 2.0.
+    pub fn from_millis_with_base_factor(base: u64) -> Self {
         Exponential {
             current: base,
             factor: base as f64,
