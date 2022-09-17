@@ -193,13 +193,13 @@ where
 #[derive(Debug, PartialEq, Eq)]
 pub struct Error<E> {
     /// The error returned by the operation on the last try.
-    error: E,
+    pub error: E,
     /// The duration spent waiting between retries of the operation.
     ///
     /// Note that this does not include the time spent running the operation itself.
-    total_delay: Duration,
+    pub total_delay: Duration,
     /// The total number of times the operation was tried.
-    tries: u64,
+    pub tries: u64,
 }
 
 impl<E> Display for Error<E>
