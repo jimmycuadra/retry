@@ -10,7 +10,8 @@ use rand::{
     thread_rng,
 };
 
-/// Each retry uses a duration randomly chosen from a range. (need `random` feature)
+/// Each retry uses a duration randomly chosen from a range. (When the `random` Cargo feature is
+/// enabled.)
 #[derive(Debug)]
 pub struct Range {
     distribution: Uniform<u64>,
@@ -18,7 +19,7 @@ pub struct Range {
 }
 
 impl Range {
-    /// Create a new `Range` between the given millisecond durations, excluding the maximum value.
+    /// Create a new [`Range`] between the given millisecond durations, excluding the maximum value.
     ///
     /// # Panics
     ///
@@ -30,7 +31,7 @@ impl Range {
         }
     }
 
-    /// Create a new `Range` between the given millisecond durations, including the maximum value.
+    /// Create a new [`Range`] between the given millisecond durations, including the maximum value.
     ///
     /// # Panics
     ///
@@ -68,7 +69,7 @@ impl From<RangeInclusive<Duration>> for Range {
     }
 }
 
-/// Apply full random jitter to a duration. (need `random` feature)
+/// Apply full random jitter to a duration. (When the `random` Cargo feature is enabled.)
 pub fn jitter(duration: Duration) -> Duration {
     let jitter = random::<f64>();
     let secs = ((duration.as_secs() as f64) * jitter).ceil() as u64;

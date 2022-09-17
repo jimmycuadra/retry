@@ -17,8 +17,8 @@ pub struct Exponential {
 }
 
 impl Exponential {
-    /// Create a new `Exponential` using the given millisecond duration as the initial delay and an
-    /// exponential backoff factor of `2.0`.
+    /// Create a new [`Exponential`] using the given millisecond duration as the initial delay and
+    /// an exponential backoff factor of `2.0`.
     pub fn from_millis(base: u64) -> Self {
         Exponential {
             current: base,
@@ -26,9 +26,9 @@ impl Exponential {
         }
     }
 
-    /// Create a new `Exponential` using the given millisecond duration as the initial delay and
-    /// the same duration as the exponential backoff factor. This was the behavior of `from_millis`
-    /// prior to version 2.0.
+    /// Create a new [`Exponential`] using the given millisecond duration as the initial delay and
+    /// the same duration as the exponential backoff factor. This was the behavior of
+    /// [`Exponential::from_millis`] prior to version 2.0.
     pub fn from_millis_with_base_factor(base: u64) -> Self {
         Exponential {
             current: base,
@@ -36,7 +36,8 @@ impl Exponential {
         }
     }
 
-    /// Create a new `Exponential` using the given millisecond duration as the initial delay and a variable multiplication factor.
+    /// Create a new [`Exponential`] using the given millisecond duration as the initial delay and
+    /// the given exponential backoff factor.
     pub fn from_millis_with_factor(base: u64, factor: f64) -> Self {
         Exponential {
             current: base,
@@ -88,11 +89,11 @@ fn exponential_overflow() {
 
 /// Each retry uses a delay which is the sum of the two previous delays.
 ///
-/// Depending on the problem at hand, a fibonacci delay strategy might
-/// perform better and lead to better throughput than the `Exponential`
-/// strategy.
+/// Depending on the problem at hand, a fibonacci delay strategy might perform better and lead to
+/// better throughput than the [`Exponential`] strategy.
 ///
-/// See ["A Performance Comparison of Different Backoff Algorithms under Different Rebroadcast Probabilities for MANETs."](http://www.comp.leeds.ac.uk/ukpew09/papers/12.pdf)
+/// See ["A Performance Comparison of Different Backoff Algorithms under Different Rebroadcast
+/// Probabilities for MANETs"](https://www.researchgate.net/publication/255672213_A_Performance_Comparison_of_Different_Backoff_Algorithms_under_Different_Rebroadcast_Probabilities_for_MANET's)
 /// for more details.
 #[derive(Debug)]
 pub struct Fibonacci {
@@ -101,7 +102,7 @@ pub struct Fibonacci {
 }
 
 impl Fibonacci {
-    /// Create a new `Fibonacci` using the given duration in milliseconds.
+    /// Create a new [`Fibonacci`] using the given duration in milliseconds.
     pub fn from_millis(millis: u64) -> Fibonacci {
         Fibonacci {
             curr: millis,
@@ -159,7 +160,7 @@ pub struct Fixed {
 }
 
 impl Fixed {
-    /// Create a new `Fixed` using the given duration in milliseconds.
+    /// Create a new [`Fixed`] using the given duration in milliseconds.
     pub fn from_millis(millis: u64) -> Self {
         Fixed {
             duration: Duration::from_millis(millis),

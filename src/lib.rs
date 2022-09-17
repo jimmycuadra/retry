@@ -2,16 +2,16 @@
 //!
 //! # Usage
 //!
-//! Retry an operation using the `retry` function. `retry` accepts an iterator over `Duration`s and
-//! a closure that returns a `Result` (or `OperationResult`; see below). The iterator is used to
-//! determine how long to wait after each unsuccessful try and how many times to try before giving
-//! up and returning `Result::Err`. The closure determines either the final successful value, or
-//! an error value, which can either be returned immediately or used to indicate that the
-//! operation should be retried.
+//! Retry an operation using the [`retry`] function. [`retry`] accepts an iterator over
+//! [`Duration`]s and a closure that returns a [`Result`] (or [`OperationResult`]; see below). The
+//! iterator is used to determine how long to wait after each unsuccessful try and how many times to
+//! try before giving up and returning [`Result::Err`]. The closure determines either the final
+//! successful value, or an error value, which can either be returned immediately or used to
+//! indicate that the operation should be retried.
 //!
-//! Any type that implements `Iterator<Item = Duration>` can be used to determine retry behavior,
-//! though a few useful implementations are provided in the `delay` module, including a fixed delay
-//! and exponential back-off.
+//! Any type that implements [`Iterator`] with an associated `Item` type of [`Duration`] can be
+//! used to determine retry behavior, though a few useful implementations are provided in the
+//! [`delay`] module, including a fixed delay and exponential backoff.
 //!
 //! ```
 //! # use retry::retry;
@@ -29,8 +29,8 @@
 //! assert!(result.is_ok());
 //! ```
 //!
-//! The `Iterator` API can be used to limit or modify the delay strategy. For example, to limit the
-//! number of retries to 1:
+//! The [`Iterator`] API can be used to limit or modify the delay strategy. For example, to limit
+//! the number of retries to 1:
 //!
 //! ```
 //! # use retry::retry;
@@ -51,8 +51,8 @@
 #![cfg_attr(
     feature = "random",
     doc = r##"
-To apply random jitter to any delay strategy, the `jitter` function can be used in combination
-with the `Iterator` API:
+To apply random jitter to any delay strategy, the [`delay::jitter`] function can be used in
+combination with the [`Iterator`] API:
 
 ```
 # use retry::retry;
@@ -72,11 +72,11 @@ assert!(result.is_ok());
 "##
 )]
 //!
-//! To deal with fatal errors, return `retry::OperationResult`, which is like std's `Result`, but
-//! with a third case to distinguish between errors that should cause a retry and errors that
-//! should immediately return, halting retry behavior. (Internally, `OperationResult` is always
-//! used, and closures passed to `retry` that return plain `Result` are converted into
-//! `OperationResult`.)
+//! To deal with fatal errors, return [`OperationResult`], which is like [`Result`], but with a
+//! third case to distinguish between errors that should cause a retry and errors that should
+//! immediately return, halting retry behavior. (Internally, [`OperationResult`] is always used, and
+//! closures passed to [`retry`] that return plain [`Result`] are converted into
+//! [`OperationResult`].)
 //!
 //! ```
 //! # use retry::retry;
@@ -94,8 +94,8 @@ assert!(result.is_ok());
 //! assert_eq!(value, 2);
 //! ```
 //!
-//! If your operation needs to know how many times it's been tried, use the `retry_with_index`
-//! function. This works the same as `retry`, but passes the number of the current try to the
+//! If your operation needs to know how many times it's been tried, use the [`retry_with_index`]
+//! function. This works the same as [`retry`], but passes the number of the current try to the
 //! closure as an argument.
 //!
 //! ```
@@ -138,7 +138,7 @@ mod opresult;
 #[doc(inline)]
 pub use opresult::OperationResult;
 
-/// Retry the given operation synchronously until it succeeds, or until the given `Duration`
+/// Retry the given operation synchronously until it succeeds, or until the given [`Duration`]
 /// iterator ends.
 pub fn retry<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
 where
@@ -149,7 +149,7 @@ where
     retry_with_index(iterable, |_| operation())
 }
 
-/// Retry the given operation synchronously until it succeeds, or until the given `Duration`
+/// Retry the given operation synchronously until it succeeds, or until the given [`Duration`]
 /// iterator ends, with each iteration of the operation receiving the number of the attempt as an
 /// argument.
 pub fn retry_with_index<I, O, R, E, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
