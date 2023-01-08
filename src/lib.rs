@@ -122,6 +122,7 @@ assert!(result.is_ok());
 //! # Features
 //!
 //! - `random`: offer some random delay utilities (on by default)
+//! - `async`: provide async version of retry
 
 #![deny(missing_debug_implementations, missing_docs, warnings)]
 
@@ -131,6 +132,12 @@ use std::{
     thread::sleep,
     time::Duration,
 };
+
+#[cfg(feature = "async")]
+use std::future::Future;
+
+#[cfg(feature = "async")]
+use futures_timer::Delay;
 
 pub mod delay;
 mod opresult;
@@ -158,33 +165,114 @@ where
     O: FnMut(u64) -> OR,
     OR: Into<OperationResult<R, E>>,
 {
-    let mut iterator = iterable.into_iter();
-    let mut current_try = 1;
-    let mut total_delay = Duration::default();
+    let mut ctx = RetryContext::new(iterable.into_iter());
 
     loop {
-        match operation(current_try).into() {
-            OperationResult::Ok(value) => return Ok(value),
+        let result = ctx.check(operation(ctx.current_try).into());
+        match result {
+            Ok(v) => return ctx.make_result(v),
+            Err(delay) => sleep(delay),
+        }
+    }
+}
+
+/// Asynchronously retry the given operation until it succeeds, or until the given [`Duration`]
+/// iterator ends.
+///
+/// # Usage
+///
+/// `retry_async` has exact parameters like [`retry`], but returns an future object instead.
+///
+/// ```rust
+/// # use retry::{retry_async, delay::Fixed};
+/// let mut collection = vec![1, 2, 3].into_iter();
+///
+/// let future = retry_async(Fixed::from_millis(100), || {
+///    let result = match collection.next() {
+///       Some(n) if n == 3 => Ok("n is 3!"),
+///       Some(_) => Err("n must be 3!"),
+///       None => Err("n was never 3!"),
+///    };
+///    async move { result }
+/// });
+/// let result = futures::executor::block_on(future);
+///
+/// assert!(result.is_ok());
+/// ```
+///
+#[cfg(feature = "async")]
+pub async fn retry_async<I, O, R, E, FOR, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
+    where
+        I: IntoIterator<Item = Duration>,
+        O: FnMut() -> FOR,
+        FOR: Future<Output=OR>,
+        OR: Into<OperationResult<R, E>>,
+{
+    retry_with_index_async(iterable, |_| operation()).await
+}
+
+/// Asynchronously retry the given operation until it succeeds, or until the given [`Duration`]
+/// iterator ends, with each iteration of the operation receiving the number of the attempt as an
+/// argument.
+#[cfg(feature = "async")]
+pub async fn retry_with_index_async<I, O, R, E, FOR, OR>(iterable: I, mut operation: O) -> Result<R, Error<E>>
+    where
+        I: IntoIterator<Item = Duration>,
+        O: FnMut(u64) -> FOR,
+        FOR: Future<Output=OR>,
+        OR: Into<OperationResult<R, E>>,
+{
+    let mut ctx = RetryContext::new(iterable.into_iter());
+
+    loop {
+        let result = ctx.check(operation(ctx.current_try).await.into());
+        match result {
+            Ok(v) => return ctx.make_result(v),
+            Err(delay) => Delay::new(delay).await,
+        }
+    }
+}
+
+/// Internal retry counting state
+struct RetryContext<I: Iterator<Item=Duration>> {
+    iterator: I,
+    current_try: u64,
+    total_delay: Duration
+}
+
+impl<I> RetryContext<I> where I: Iterator<Item=Duration> {
+    fn new(iterator: I) -> RetryContext<I> {
+        Self { iterator, current_try: 1, total_delay: Duration::default() }
+    }
+
+    fn check<R,E>(&mut self, result: OperationResult<R,E>) -> Result<OperationResult<R, E>, Duration> {
+        match result {
             OperationResult::Retry(error) => {
-                if let Some(delay) = iterator.next() {
-                    sleep(delay);
-                    current_try += 1;
-                    total_delay += delay;
+                if let Some(delay) = self.iterator.next() {
+                    self.current_try += 1;
+                    self.total_delay += delay;
+                    Err(delay)
                 } else {
-                    return Err(Error {
-                        error,
-                        total_delay,
-                        tries: current_try,
-                    });
+                    Ok(OperationResult::Err(error))
                 }
             }
-            OperationResult::Err(error) => {
-                return Err(Error {
-                    error,
-                    total_delay,
-                    tries: current_try,
-                });
-            }
+            v => Ok(v)
+        }
+    }
+
+    fn make_result<R,E>(self, result: OperationResult<R,E>) -> Result<R, Error<E>> {
+        match result {
+            OperationResult::Ok(v) => Ok(v),
+            OperationResult::Retry(error) => Err(self.make_error(error)),
+            OperationResult::Err(error) => Err(self.make_error(error)),
+        }
+    }
+
+    fn make_error<E>(&self, error: E) -> Error<E> {
+        Error {
+            error,
+            total_delay: self.total_delay,
+            tries: self.current_try,
         }
     }
 }
