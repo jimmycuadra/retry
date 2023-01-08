@@ -165,33 +165,13 @@ where
     O: FnMut(u64) -> OR,
     OR: Into<OperationResult<R, E>>,
 {
-    let mut iterator = iterable.into_iter();
-    let mut current_try = 1;
-    let mut total_delay = Duration::default();
+    let mut ctx = RetryContext::new(iterable.into_iter());
 
     loop {
-        match operation(current_try).into() {
-            OperationResult::Ok(value) => return Ok(value),
-            OperationResult::Retry(error) => {
-                if let Some(delay) = iterator.next() {
-                    sleep(delay);
-                    current_try += 1;
-                    total_delay += delay;
-                } else {
-                    return Err(Error {
-                        error,
-                        total_delay,
-                        tries: current_try,
-                    });
-                }
-            }
-            OperationResult::Err(error) => {
-                return Err(Error {
-                    error,
-                    total_delay,
-                    tries: current_try,
-                });
-            }
+        let result = ctx.check(operation(ctx.current_try).into());
+        match result {
+            Ok(v) => return ctx.make_result(v),
+            Err(delay) => sleep(delay),
         }
     }
 }
@@ -242,33 +222,57 @@ pub async fn retry_with_index_async<I, O, R, E, FOR, OR>(iterable: I, mut operat
         FOR: Future<Output=OR>,
         OR: Into<OperationResult<R, E>>,
 {
-    let mut iterator = iterable.into_iter();
-    let mut current_try = 1;
-    let mut total_delay = Duration::default();
+    let mut ctx = RetryContext::new(iterable.into_iter());
 
     loop {
-        match operation(current_try).await.into() {
-            OperationResult::Ok(value) => return Ok(value),
+        let result = ctx.check(operation(ctx.current_try).await.into());
+        match result {
+            Ok(v) => return ctx.make_result(v),
+            Err(delay) => Delay::new(delay).await,
+        }
+    }
+}
+
+/// Internal retry counting state
+struct RetryContext<I: Iterator<Item=Duration>> {
+    iterator: I,
+    current_try: u64,
+    total_delay: Duration
+}
+
+impl<I> RetryContext<I> where I: Iterator<Item=Duration> {
+    fn new(iterator: I) -> RetryContext<I> {
+        Self { iterator, current_try: 1, total_delay: Duration::default() }
+    }
+
+    fn check<R,E>(&mut self, result: OperationResult<R,E>) -> Result<OperationResult<R, E>, Duration> {
+        match result {
             OperationResult::Retry(error) => {
-                if let Some(delay) = iterator.next() {
-                    Delay::new(delay).await;
-                    current_try += 1;
-                    total_delay += delay;
+                if let Some(delay) = self.iterator.next() {
+                    self.current_try += 1;
+                    self.total_delay += delay;
+                    Err(delay)
                 } else {
-                    return Err(Error {
-                        error,
-                        total_delay,
-                        tries: current_try,
-                    });
+                    Ok(OperationResult::Err(error))
                 }
             }
-            OperationResult::Err(error) => {
-                return Err(Error {
-                    error,
-                    total_delay,
-                    tries: current_try,
-                });
-            }
+            v => Ok(v)
+        }
+    }
+
+    fn make_result<R,E>(self, result: OperationResult<R,E>) -> Result<R, Error<E>> {
+        match result {
+            OperationResult::Ok(v) => Ok(v),
+            OperationResult::Retry(error) => Err(self.make_error(error)),
+            OperationResult::Err(error) => Err(self.make_error(error)),
+        }
+    }
+
+    fn make_error<E>(&self, error: E) -> Error<E> {
+        Error {
+            error,
+            total_delay: self.total_delay,
+            tries: self.current_try,
         }
     }
 }
