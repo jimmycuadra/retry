@@ -9,11 +9,16 @@ license = "MIT"
 name = "retry"
 readme = "README.md"
 repository = "https://github.com/jimmycuadra/retry"
-version = "2.0.0"
+version = "2.0.1"
 
 [dependencies]
 rand = { version = "^0.8", optional = true }
+futures-timer = { version = "3", optional = true }
+
+[dev-dependencies]
+futures = "0.3"
 
 [features]
 default = ["random"]
 random = ["rand"]
+async = ["futures-timer"]
