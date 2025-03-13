@@ -4,10 +4,9 @@ use std::{
 };
 
 use rand::{
-    distributions::{Distribution, Uniform},
+    distr::{Distribution, Uniform},
     random,
     rngs::ThreadRng,
-    thread_rng,
 };
 
 /// Each retry uses a duration randomly chosen from a range. (When the `random` Cargo feature is
@@ -26,8 +25,9 @@ impl Range {
     /// Panics if the minimum is greater than or equal to the maximum.
     pub fn from_millis_exclusive(minimum: u64, maximum: u64) -> Self {
         Range {
-            distribution: Uniform::new(minimum, maximum),
-            rng: thread_rng(),
+            distribution: Uniform::new(minimum, maximum)
+                .expect("minimum must be less than maximum"),
+            rng: rand::rng(),
         }
     }
 
@@ -38,8 +38,9 @@ impl Range {
     /// Panics if the minimum is greater than or equal to the maximum.
     pub fn from_millis_inclusive(minimum: u64, maximum: u64) -> Self {
         Range {
-            distribution: Uniform::new_inclusive(minimum, maximum),
-            rng: thread_rng(),
+            distribution: Uniform::new_inclusive(minimum, maximum)
+                .expect("minimum must be less than maximum"),
+            rng: rand::rng(),
         }
     }
 }
