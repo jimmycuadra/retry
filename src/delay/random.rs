@@ -4,7 +4,7 @@ use std::{
 };
 
 use rand::{
-    distr::{Distribution, Uniform},
+    distr::{uniform::Error as UniformError, Distribution, Uniform},
     random,
     rngs::ThreadRng,
 };
@@ -31,6 +31,19 @@ impl Range {
         }
     }
 
+    /// Attempt to create a new [`Range`] between the given millisecond durations, excluding the
+    /// maximum value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the minimum is greater than or equal to the maximum.
+    pub fn try_from_millis_exclusive(minimum: u64, maximum: u64) -> Result<Self, UniformError> {
+        Ok(Range {
+            distribution: Uniform::new(minimum, maximum)?,
+            rng: rand::rng(),
+        })
+    }
+
     /// Create a new [`Range`] between the given millisecond durations, including the maximum value.
     ///
     /// # Panics
@@ -42,6 +55,19 @@ impl Range {
                 .expect("minimum must be less than maximum"),
             rng: rand::rng(),
         }
+    }
+
+    /// Attempt to create a new [`Range`] between the given millisecond durations, including the
+    /// maximum value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the minimum is greater than or equal to the maximum.
+    pub fn try_from_millis_inclusive(minimum: u64, maximum: u64) -> Result<Self, UniformError> {
+        Ok(Range {
+            distribution: Uniform::new_inclusive(minimum, maximum)?,
+            rng: rand::rng(),
+        })
     }
 }
 
@@ -88,8 +114,23 @@ fn range_uniform() {
 
 #[test]
 #[should_panic]
-fn range_uniform_wrong_input() {
-    Range::from_millis_exclusive(0, 0);
+fn range_exclusive_uniform_wrong_input() {
+    Range::from_millis_exclusive(1, 0);
+}
+
+#[test]
+#[should_panic]
+fn range_inclusive_uniform_wrong_input() {
+    Range::from_millis_inclusive(1, 0);
+}
+
+#[test]
+fn try_range_uniform() {
+    assert!(Range::try_from_millis_exclusive(0, 1).is_ok());
+    assert!(Range::try_from_millis_inclusive(0, 1).is_ok());
+
+    assert!(Range::try_from_millis_exclusive(1, 0).is_err());
+    assert!(Range::try_from_millis_inclusive(1, 0).is_err());
 }
 
 #[test]
