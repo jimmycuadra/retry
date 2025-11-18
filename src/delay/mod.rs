@@ -19,7 +19,7 @@ impl Exponential {
     /// Create a new [`Exponential`] using the given millisecond duration as the initial delay and
     /// an exponential backoff factor of `2.0`.
     #[must_use]
-    pub fn from_millis(base: u64) -> Self {
+    pub const fn from_millis(base: u64) -> Self {
         Exponential {
             current: base,
             factor: 2.0,
@@ -30,7 +30,7 @@ impl Exponential {
     /// the same duration as the exponential backoff factor. This was the behavior of
     /// [`Exponential::from_millis`] prior to version 2.0.
     #[must_use]
-    pub fn from_millis_with_base_factor(base: u64) -> Self {
+    pub const fn from_millis_with_base_factor(base: u64) -> Self {
         Exponential {
             current: base,
             factor: base as f64,
@@ -40,7 +40,7 @@ impl Exponential {
     /// Create a new [`Exponential`] using the given millisecond duration as the initial delay and
     /// the given exponential backoff factor.
     #[must_use]
-    pub fn from_millis_with_factor(base: u64, factor: f64) -> Self {
+    pub const fn from_millis_with_factor(base: u64, factor: f64) -> Self {
         Exponential {
             current: base,
             factor,
@@ -106,7 +106,7 @@ pub struct Fibonacci {
 impl Fibonacci {
     /// Create a new [`Fibonacci`] using the given duration in milliseconds.
     #[must_use]
-    pub fn from_millis(millis: u64) -> Fibonacci {
+    pub const fn from_millis(millis: u64) -> Fibonacci {
         Fibonacci {
             curr: millis,
             next: millis,
@@ -165,7 +165,7 @@ pub struct Fixed {
 impl Fixed {
     /// Create a new [`Fixed`] using the given duration in milliseconds.
     #[must_use]
-    pub fn from_millis(millis: u64) -> Self {
+    pub const fn from_millis(millis: u64) -> Self {
         Fixed {
             duration: Duration::from_millis(millis),
         }

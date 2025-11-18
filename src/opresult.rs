@@ -59,7 +59,7 @@ impl<T, E> OperationResult<T, E> {
     /// assert_eq!(x.is_ok(), false);
     /// ```
     #[must_use]
-    pub fn is_ok(&self) -> bool {
+    pub const fn is_ok(&self) -> bool {
         matches!(self, Self::Ok(_))
     }
 
@@ -82,7 +82,7 @@ impl<T, E> OperationResult<T, E> {
     /// assert_eq!(x.is_retry(), false);
     /// ```
     #[must_use]
-    pub fn is_retry(&self) -> bool {
+    pub const fn is_retry(&self) -> bool {
         matches!(self, Self::Retry(_))
     }
 
@@ -105,7 +105,7 @@ impl<T, E> OperationResult<T, E> {
     /// assert_eq!(x.is_err(), true);
     /// ```
     #[must_use]
-    pub fn is_err(&self) -> bool {
+    pub const fn is_err(&self) -> bool {
         matches!(self, Self::Err(_))
     }
 }
