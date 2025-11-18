@@ -23,6 +23,7 @@ impl Range {
     /// # Panics
     ///
     /// Panics if the minimum is greater than or equal to the maximum.
+    #[must_use]
     pub fn from_millis_exclusive(minimum: u64, maximum: u64) -> Self {
         Range {
             distribution: Uniform::new(minimum, maximum)
@@ -49,6 +50,7 @@ impl Range {
     /// # Panics
     ///
     /// Panics if the minimum is greater than or equal to the maximum.
+    #[must_use]
     pub fn from_millis_inclusive(minimum: u64, maximum: u64) -> Self {
         Range {
             distribution: Uniform::new_inclusive(minimum, maximum)
@@ -97,6 +99,7 @@ impl From<RangeInclusive<Duration>> for Range {
 }
 
 /// Apply full random jitter to a duration. (When the `random` Cargo feature is enabled.)
+#[must_use]
 pub fn jitter(duration: Duration) -> Duration {
     let jitter = random::<f64>();
     let secs = ((duration.as_secs() as f64) * jitter).ceil() as u64;
@@ -115,13 +118,13 @@ fn range_uniform() {
 #[test]
 #[should_panic]
 fn range_exclusive_uniform_wrong_input() {
-    Range::from_millis_exclusive(1, 0);
+    let _panic = Range::from_millis_exclusive(1, 0);
 }
 
 #[test]
 #[should_panic]
 fn range_inclusive_uniform_wrong_input() {
-    Range::from_millis_inclusive(1, 0);
+    let _panic = Range::from_millis_inclusive(1, 0);
 }
 
 #[test]

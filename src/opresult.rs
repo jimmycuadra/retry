@@ -19,6 +19,7 @@
 //! ```
 
 /// A result that represents either success, retryable failure, or immediately-returning failure.
+#[must_use]
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum OperationResult<T, E> {
     /// Contains the success value.
@@ -57,7 +58,8 @@ impl<T, E> OperationResult<T, E> {
     /// let x: OperationResult<i32, &str> = OperationResult::Err("Some other error message");
     /// assert_eq!(x.is_ok(), false);
     /// ```
-    pub fn is_ok(&self) -> bool {
+    #[must_use]
+    pub const fn is_ok(&self) -> bool {
         matches!(self, Self::Ok(_))
     }
 
@@ -79,7 +81,8 @@ impl<T, E> OperationResult<T, E> {
     /// let x: OperationResult<i32, &str> = OperationResult::Err("Some other error message");
     /// assert_eq!(x.is_retry(), false);
     /// ```
-    pub fn is_retry(&self) -> bool {
+    #[must_use]
+    pub const fn is_retry(&self) -> bool {
         matches!(self, Self::Retry(_))
     }
 
@@ -101,7 +104,8 @@ impl<T, E> OperationResult<T, E> {
     /// let x: OperationResult<i32, &str> = OperationResult::Err("Some other error message");
     /// assert_eq!(x.is_err(), true);
     /// ```
-    pub fn is_err(&self) -> bool {
+    #[must_use]
+    pub const fn is_err(&self) -> bool {
         matches!(self, Self::Err(_))
     }
 }
