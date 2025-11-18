@@ -1,7 +1,6 @@
 //! Different types of delay for retryable operations.
 
 use std::time::Duration;
-use std::u64::MAX as U64_MAX;
 
 #[cfg(feature = "random")]
 mod random;
@@ -53,8 +52,8 @@ impl Iterator for Exponential {
         let duration = Duration::from_millis(self.current);
 
         let next = (self.current as f64) * self.factor;
-        self.current = if next > (U64_MAX as f64) {
-            U64_MAX
+        self.current = if next > (u64::MAX as f64) {
+            u64::MAX
         } else {
             next as u64
         };
@@ -82,9 +81,9 @@ fn exponential_with_factor() {
 
 #[test]
 fn exponential_overflow() {
-    let mut iter = Exponential::from_millis(U64_MAX);
-    assert_eq!(iter.next(), Some(Duration::from_millis(U64_MAX)));
-    assert_eq!(iter.next(), Some(Duration::from_millis(U64_MAX)));
+    let mut iter = Exponential::from_millis(u64::MAX);
+    assert_eq!(iter.next(), Some(Duration::from_millis(u64::MAX)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(u64::MAX)));
 }
 
 /// Each retry uses a delay which is the sum of the two previous delays.
@@ -122,7 +121,7 @@ impl Iterator for Fibonacci {
             self.next = next_next;
         } else {
             self.curr = self.next;
-            self.next = U64_MAX;
+            self.next = u64::MAX;
         }
 
         Some(duration)
@@ -148,9 +147,9 @@ fn fibonacci() {
 
 #[test]
 fn fibonacci_saturated() {
-    let mut iter = Fibonacci::from_millis(U64_MAX);
-    assert_eq!(iter.next(), Some(Duration::from_millis(U64_MAX)));
-    assert_eq!(iter.next(), Some(Duration::from_millis(U64_MAX)));
+    let mut iter = Fibonacci::from_millis(u64::MAX);
+    assert_eq!(iter.next(), Some(Duration::from_millis(u64::MAX)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(u64::MAX)));
 }
 
 /// Each retry uses a fixed delay.
