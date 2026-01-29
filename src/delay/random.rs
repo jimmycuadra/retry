@@ -141,3 +141,9 @@ fn test_jitter() {
     assert_eq!(Duration::from_millis(0), jitter(Duration::from_millis(0)));
     assert!(Duration::from_millis(0) < jitter(Duration::from_millis(2)));
 }
+
+#[test]
+fn test_jitter_reduces_duration() {
+    let d = Duration::from_secs(1);
+    assert!((0..100).any(|_| jitter(d) < d));
+}
