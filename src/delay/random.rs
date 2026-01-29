@@ -101,10 +101,7 @@ impl From<RangeInclusive<Duration>> for Range {
 /// Apply full random jitter to a duration. (When the `random` Cargo feature is enabled.)
 #[must_use]
 pub fn jitter(duration: Duration) -> Duration {
-    let jitter = random::<f64>();
-    let secs = ((duration.as_secs() as f64) * jitter).ceil() as u64;
-    let nanos = ((f64::from(duration.subsec_nanos())) * jitter).ceil() as u32;
-    Duration::new(secs, nanos)
+    duration.mul_f64(random::<f64>())
 }
 
 #[test]
