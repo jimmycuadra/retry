@@ -9,7 +9,7 @@ license = "MIT"
 name = "retry"
 readme = "README.md"
 repository = "https://github.com/jimmycuadra/retry"
-version = "2.1.0"
+version = "2.2.0"
 
 [dependencies]
 rand = { version = "^0.9", optional = true }
