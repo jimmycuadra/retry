@@ -175,6 +175,7 @@ where
                         error,
                         total_delay,
                         tries: current_try,
+                        retries_exhausted: true,
                     });
                 }
             }
@@ -183,6 +184,7 @@ where
                     error,
                     total_delay,
                     tries: current_try,
+                    retries_exhausted: false,
                 });
             }
         }
@@ -200,6 +202,8 @@ pub struct Error<E> {
     pub total_delay: Duration,
     /// The total number of times the operation was tried.
     pub tries: u64,
+    /// Whether or not the error was caused by the retry limit being reached.
+    pub retries_exhausted: bool,
 }
 
 impl<E> Display for Error<E>
@@ -276,7 +280,8 @@ mod tests {
             Err(Error {
                 error: "not 2",
                 tries: 2,
-                total_delay: Duration::from_millis(0)
+                total_delay: Duration::from_millis(0),
+                retries_exhausted: true,
             })
         );
     }
@@ -296,7 +301,8 @@ mod tests {
             Err(Error {
                 error: "no retry",
                 tries: 1,
-                total_delay: Duration::from_millis(0)
+                total_delay: Duration::from_millis(0),
+                retries_exhausted: false,
             })
         );
     }
