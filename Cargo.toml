@@ -11,7 +11,7 @@ repository = "https://github.com/jimmycuadra/retry"
 version = "2.2.0"
 
 [dependencies]
-rand = { version = "^0.9", optional = true }
+rand = { version = "^0.10", optional = true }
 
 [features]
 default = ["random"]
