@@ -2,7 +2,7 @@
 authors = ["Jimmy Cuadra <jimmy@jimmycuadra.com>", "Sam Rijs <srijs@airpost.net>"]
 description = "Utilities for retrying operations that can fail."
 documentation = "https://docs.rs/retry"
-edition = "2018"
+edition = "2024"
 keywords = ["utility", "utilities"]
 license = "MIT"
 name = "retry"
